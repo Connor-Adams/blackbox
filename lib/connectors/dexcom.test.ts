@@ -68,7 +68,7 @@ describe("dexcomConnector (live branch)", () => {
     );
 
     const url = new URL(fetchImpl.mock.calls[0][0] as string);
-    expect(url.searchParams.get("startDate")).toBe("2026-06-03T06:00:00");
+    expect(url.searchParams.get("startDate")).toBe("2026-06-03T05:00:00");
     expect(url.searchParams.get("endDate")).toBe("2026-06-03T09:00:00");
     vi.unstubAllGlobals();
   });
