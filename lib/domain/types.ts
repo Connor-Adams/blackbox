@@ -48,6 +48,7 @@ export interface ManualAnnotationPayload {
   timestamp: string;
   endTimestamp?: string;
   notes?: string;
+  recordId?: string;
   metadata?: Record<string, unknown>;
 }
 

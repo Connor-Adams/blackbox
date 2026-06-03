@@ -101,3 +101,14 @@ describe("ingestRawEvents", () => {
     expect(observations.size).toBe(2);
   });
 });
+
+describe("extractRawMeta: manual recordId", () => {
+  it("uses the manual payload recordId as the source record id when present", () => {
+    const meta = extractRawMeta("manual", { type: "note", title: "x", timestamp: "2026-06-01T09:00:00Z", recordId: "ann-1" });
+    expect(meta.sourceRecordId).toBe("ann-1");
+  });
+  it("stays null when the manual payload has no recordId", () => {
+    const meta = extractRawMeta("manual", { type: "note", title: "x", timestamp: "2026-06-01T09:00:00Z" });
+    expect(meta.sourceRecordId).toBeNull();
+  });
+});

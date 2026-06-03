@@ -35,7 +35,7 @@ export function extractRawMeta(
   switch (sourceType) {
     case "manual": {
       const p = payload as ManualAnnotationPayload;
-      return { sourceRecordId: null, occurredAt: new Date(p.timestamp) };
+      return { sourceRecordId: p.recordId ?? null, occurredAt: new Date(p.timestamp) };
     }
     case "dexcom": {
       const p = payload as DexcomReadingPayload;
