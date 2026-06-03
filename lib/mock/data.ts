@@ -1,4 +1,4 @@
-import type { DexcomReadingPayload, ManualAnnotationPayload } from "@/lib/domain/types";
+import type { CashflowTransactionPayload, DexcomReadingPayload, ManualAnnotationPayload } from "@/lib/domain/types";
 
 const D = "2026-06-01";
 
@@ -30,4 +30,11 @@ export const manualNotesDay: ManualAnnotationPayload[] = [
   { type: "exercise", title: "30 min walk", timestamp: `${D}T12:30:00Z`, endTimestamp: `${D}T13:00:00Z` },
   { type: "stress", title: "Deadline crunch", timestamp: `${D}T15:00:00Z`, notes: "high context-switching" },
   { type: "meal", title: "Late pasta dinner", timestamp: `${D}T21:00:00Z`, notes: "big portion" },
+];
+
+/** A spend day whose total ($246.50) trips the high-spend insight. */
+export const cashflowDay: CashflowTransactionPayload[] = [
+  { recordId: "tx-1", amount: 4.5, description: "Morning coffee", timestamp: `${D}T08:00:00Z`, category: "dining" },
+  { recordId: "tx-2", amount: 62, description: "Groceries", timestamp: `${D}T12:15:00Z`, category: "groceries" },
+  { recordId: "tx-3", amount: 180, description: "Dinner out", timestamp: `${D}T20:30:00Z`, category: "dining" },
 ];
