@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import type { SourceDTO } from "@/lib/api/source-dto";
 
-export function SourcesView({ sources }: { sources: SourceDTO[] }) {
+export function SourcesView({
+  sources,
+  connect = [],
+}: {
+  sources: SourceDTO[];
+  connect?: { label: string; url: string }[];
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<Record<string, string>>({});
@@ -27,6 +33,19 @@ export function SourcesView({ sources }: { sources: SourceDTO[] }) {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6">
       <h1 className="text-xl font-semibold tracking-tight">Sources</h1>
+      {connect.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {connect.map((c) => (
+            <a
+              key={c.url}
+              href={c.url}
+              className="inline-flex items-center rounded-md border border-border bg-foreground px-3 py-1.5 text-sm font-medium text-background"
+            >
+              {c.label}
+            </a>
+          ))}
+        </div>
+      )}
       {sources.length === 0 ? (
         <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">No sources configured.</div>
       ) : (
