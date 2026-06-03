@@ -12,6 +12,8 @@ const urlString = z.string().refine((value) => {
 export const envSchema = z.object({
   DATABASE_URL: urlString,
   BLACKBOX_APP_URL: urlString.default("http://localhost:3000"),
+  CASHFLOW_API_BASE_URL: urlString.optional(),
+  CASHFLOW_API_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
