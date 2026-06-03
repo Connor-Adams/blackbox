@@ -6,3 +6,7 @@ export const SEED_USER_ID = "00000000-0000-4000-8000-000000000001";
 export const SEED_MANUAL_CONNECTION_ID = "00000000-0000-4000-8000-000000000010";
 export const SEED_DEXCOM_CONNECTION_ID = "00000000-0000-4000-8000-000000000011";
 export const SEED_CASHFLOW_CONNECTION_ID = "00000000-0000-4000-8000-000000000012";
+
+// Fixed id for the live (OAuth-connected) Dexcom connection, distinct from the
+// mock seed connection so live data and mock demo data coexist.
+export const LIVE_DEXCOM_CONNECTION_ID = "00000000-0000-4000-8000-000000000020";
