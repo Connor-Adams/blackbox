@@ -17,20 +17,25 @@ export function AnnotationForm({ date }: { date: string }) {
   async function submit() {
     setBusy(true);
     setError(null);
-    const timestamp = new Date(`${date}T${time}:00Z`).toISOString();
-    const res = await fetch("/api/annotations", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ type, title, timestamp, notes: notes || undefined }),
-    });
-    setBusy(false);
-    if (!res.ok) {
+    try {
+      const timestamp = new Date(`${date}T${time}:00Z`).toISOString();
+      const res = await fetch("/api/annotations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ type, title, timestamp, notes: notes || undefined }),
+      });
+      if (!res.ok) {
+        setError("Could not save annotation.");
+        return;
+      }
+      setTitle("");
+      setNotes("");
+      router.refresh();
+    } catch {
       setError("Could not save annotation.");
-      return;
+    } finally {
+      setBusy(false);
     }
-    setTitle("");
-    setNotes("");
-    router.refresh();
   }
 
   return (
