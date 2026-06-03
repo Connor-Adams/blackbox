@@ -1,7 +1,8 @@
 import { and, eq, gte, lt } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { observation, rawEvent, timelineEvent } from "@/lib/db/schema";
-import type { ObservationMetric, TimelineEventType } from "@/lib/db/schema";
+import { observation, rawEvent, sourceConnection, timelineEvent } from "@/lib/db/schema";
+import type { ObservationMetric, SourceType, TimelineEventType } from "@/lib/db/schema";
+import { SEED_USER_ID } from "@/lib/constants";
 import { dayRange } from "@/lib/domain/time";
 import type { IngestStore, RawEventRow } from "@/lib/domain/ingest";
 import type {
@@ -129,4 +130,27 @@ export async function getTimeline(userId: string, date: string, db: Db = getDb()
       ),
     );
   return { events, observations };
+}
+
+/** Insert a source connection with a fixed id if it does not already exist
+ *  (idempotent). Returns the IngestConnection shape. */
+export async function ensureSourceConnection(
+  input: { id: string; sourceType: SourceType; displayName: string },
+  db: Db = getDb(),
+): Promise<{ id: string; userId: string; sourceType: SourceType }> {
+  const [existing] = await db
+    .select({ id: sourceConnection.id })
+    .from(sourceConnection)
+    .where(eq(sourceConnection.id, input.id))
+    .limit(1);
+  if (!existing) {
+    await db.insert(sourceConnection).values({
+      id: input.id,
+      userId: SEED_USER_ID,
+      sourceType: input.sourceType,
+      displayName: input.displayName,
+      status: "active",
+    });
+  }
+  return { id: input.id, userId: SEED_USER_ID, sourceType: input.sourceType };
 }
