@@ -1,5 +1,3 @@
-"use client";
-
 import type { TimelineEventDTO } from "@/lib/api/timeline-dto";
 
 export function EventList({
