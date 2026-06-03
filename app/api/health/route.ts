@@ -8,9 +8,9 @@ export async function GET() {
     return NextResponse.json({ status: "ok", db: "unconfigured" });
   }
   try {
-    const { db } = await import("@/lib/db/client");
+    const { getDb } = await import("@/lib/db/client");
     const { sql } = await import("drizzle-orm");
-    await db.execute(sql`select 1`);
+    await getDb().execute(sql`select 1`);
     return NextResponse.json({ status: "ok", db: "up" });
   } catch (error) {
     return NextResponse.json(
