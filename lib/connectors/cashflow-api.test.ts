@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { fetchCashflowTransactions } from "./cashflow-api";
+import { cashflowGet, fetchCashflowSummary, fetchCashflowByCategory } from "@/lib/connectors/cashflow-api";
+
+function okFetch(body: unknown) {
+  return vi.fn(async () => new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
+}
 
 const BASE_URL = "https://backend-production-30f95.up.railway.app";
 const TOKEN = "cfr_test_token";
@@ -91,5 +96,33 @@ describe("fetchCashflowTransactions", () => {
     await expect(
       fetchCashflowTransactions(BASE_URL, TOKEN, { start: "2026-05-01", end: "2026-05-31" }, fetchImpl),
     ).rejects.toThrow("cashflow API 401");
+  });
+});
+
+describe("cashflowGet", () => {
+  it("sends the bearer token and returns the parsed body", async () => {
+    const f = okFetch({ hello: "world" });
+    const out = await cashflowGet<{ hello: string }>("https://api.test", "cfr_x", "/api/v1/summary", f);
+    expect(out).toEqual({ hello: "world" });
+    const [url, init] = (f as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(String(url)).toBe("https://api.test/api/v1/summary");
+    expect((init as RequestInit).headers).toMatchObject({ Authorization: "Bearer cfr_x" });
+  });
+  it("throws on a non-2xx response", async () => {
+    const f = vi.fn(async () => new Response("nope", { status: 401, statusText: "Unauthorized" })) as unknown as typeof fetch;
+    await expect(cashflowGet("https://api.test", "t", "/api/v1/summary", f)).rejects.toThrow(/401/);
+  });
+});
+
+describe("aggregate fetchers", () => {
+  it("fetchCashflowSummary returns the summary body", async () => {
+    const summary = { currency: "CAD", netWorth: 1000, liquidCash: 200, monthlyBurn: 50, monthlyIncome: 80, monthlySavingsRate: 0.3, runwayMonths: 4 };
+    expect(await fetchCashflowSummary("https://api.test", "t", okFetch(summary))).toEqual(summary);
+  });
+  it("fetchCashflowByCategory passes start/end and returns categories", async () => {
+    const f = okFetch({ categories: [{ name: "dining", amount: 100, percentage: 50, transactionCount: 3, trendVsPreviousPeriod: 0.1 }] });
+    const out = await fetchCashflowByCategory("https://api.test", "t", { start: "2026-03-01", end: "2026-06-01" }, f);
+    expect(out.categories[0].name).toBe("dining");
+    expect(String((f as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0])).toContain("/api/v1/spending/by-category?start=2026-03-01&end=2026-06-01");
   });
 });
