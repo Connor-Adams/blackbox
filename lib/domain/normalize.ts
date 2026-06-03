@@ -1,5 +1,6 @@
 import type { AnnotationType, TimelineEventType } from "@/lib/db/schema";
 import type {
+  CashflowTransactionPayload,
   DexcomReadingPayload,
   ManualAnnotationPayload,
   NormalizeResult,
@@ -63,6 +64,38 @@ function normalizeDexcom(raw: RawEventInput): NormalizeResult {
   };
 }
 
+function normalizeCashflow(raw: RawEventInput): NormalizeResult {
+  const p = raw.payload as CashflowTransactionPayload;
+  const extra = p.category ? { category: p.category } : {};
+  return {
+    observations: [
+      {
+        userId: raw.userId,
+        rawEventId: raw.id,
+        sourceType: "cashflow",
+        metric: "transaction_amount",
+        value: p.amount,
+        unit: "USD",
+        observedAt: new Date(p.timestamp),
+        metadata: { description: p.description, ...extra },
+      },
+    ],
+    timelineEvents: [
+      {
+        userId: raw.userId,
+        rawEventId: raw.id,
+        sourceType: "cashflow",
+        eventType: "transaction",
+        title: p.description,
+        description: `$${p.amount}`,
+        startedAt: new Date(p.timestamp),
+        endedAt: null,
+        metadata: { amount: p.amount, ...extra },
+      },
+    ],
+  };
+}
+
 /** Map a raw source payload to normalized observations + timeline events.
  *  Pure: no DB, no IO. Unsupported source types yield an empty result. */
 export function normalize(raw: RawEventInput): NormalizeResult {
@@ -71,6 +104,8 @@ export function normalize(raw: RawEventInput): NormalizeResult {
       return normalizeManual(raw);
     case "dexcom":
       return normalizeDexcom(raw);
+    case "cashflow":
+      return normalizeCashflow(raw);
     default:
       return EMPTY;
   }
