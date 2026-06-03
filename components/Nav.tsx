@@ -2,6 +2,7 @@ import Link from "next/link";
 
 const LINKS: [string, string][] = [
   ["/today", "Today"],
+  ["/money", "Money"],
   ["/timeline", "Timeline"],
   ["/insights", "Insights"],
   ["/sources", "Sources"],
