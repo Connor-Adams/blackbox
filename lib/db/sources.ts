@@ -6,6 +6,7 @@ import { ingestRawEvents } from "@/lib/domain/ingest";
 import { getConnector } from "@/lib/connectors";
 import { executeSync, type SyncResult, type SyncStore } from "@/lib/connectors/sync";
 import type { DexcomCreds, SyncConnection } from "@/lib/connectors/types";
+import { SEED_USER_ID, LIVE_DEXCOM_CONNECTION_ID } from "@/lib/constants";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -78,4 +79,31 @@ export async function runConnectorSync(connectionId: string, db: Db = getDb()): 
     lastSyncAt: conn.lastSyncAt ?? null,
   };
   return executeSync(new DbSyncStore(db), connector, syncConn, new Date());
+}
+
+/** Create or update the dedicated live Dexcom connection with fresh creds. */
+export async function upsertLiveDexcomConnection(creds: DexcomCreds, db: Db = getDb()): Promise<string> {
+  const [existing] = await db
+    .select({ id: sourceConnection.id, metadata: sourceConnection.metadata })
+    .from(sourceConnection)
+    .where(eq(sourceConnection.id, LIVE_DEXCOM_CONNECTION_ID))
+    .limit(1);
+
+  if (existing) {
+    const metadata = { ...(existing.metadata ?? {}), dexcom: creds };
+    await db
+      .update(sourceConnection)
+      .set({ status: "active", metadata })
+      .where(eq(sourceConnection.id, LIVE_DEXCOM_CONNECTION_ID));
+  } else {
+    await db.insert(sourceConnection).values({
+      id: LIVE_DEXCOM_CONNECTION_ID,
+      userId: SEED_USER_ID,
+      sourceType: "dexcom",
+      displayName: "Dexcom",
+      status: "active",
+      metadata: { dexcom: creds },
+    });
+  }
+  return LIVE_DEXCOM_CONNECTION_ID;
 }
