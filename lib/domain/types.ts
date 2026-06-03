@@ -60,3 +60,12 @@ export interface DexcomReadingPayload {
   trendRate?: number;
   recordId?: string;
 }
+
+/** Cashflow transaction payload (read-only mirror of a Cashflow transaction). */
+export interface CashflowTransactionPayload {
+  recordId: string;
+  amount: number; // positive = spend, in the account currency
+  description: string;
+  timestamp: string; // ISO 8601
+  category?: string;
+}

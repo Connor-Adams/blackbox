@@ -1,5 +1,6 @@
 import type { SourceType } from "@/lib/db/schema";
 import type {
+  CashflowTransactionPayload,
   DexcomReadingPayload,
   ManualAnnotationPayload,
   NormalizedObservation,
@@ -39,6 +40,10 @@ export function extractRawMeta(
     }
     case "dexcom": {
       const p = payload as DexcomReadingPayload;
+      return { sourceRecordId: p.recordId ?? null, occurredAt: new Date(p.timestamp) };
+    }
+    case "cashflow": {
+      const p = payload as CashflowTransactionPayload;
       return { sourceRecordId: p.recordId ?? null, occurredAt: new Date(p.timestamp) };
     }
     default:

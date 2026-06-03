@@ -99,3 +99,20 @@ describe("normalize: dexcom", () => {
     expect(obs.metadata).toEqual({});
   });
 });
+
+describe("normalize: cashflow", () => {
+  const cbase = {
+    id: "raw-3", userId: "user-1", sourceConnectionId: "conn-3",
+    sourceRecordId: "tx-1", occurredAt: new Date("2026-06-01T12:00:00Z"), sourceType: "cashflow" as const,
+  };
+  it("maps a transaction to a transaction_amount observation AND a transaction timeline event", () => {
+    const raw: RawEventInput = { ...cbase, payload: { recordId: "tx-1", amount: 62, description: "Groceries", timestamp: "2026-06-01T12:00:00Z", category: "groceries" } };
+    const { observations, timelineEvents } = normalize(raw);
+    expect(observations).toHaveLength(1);
+    expect(observations[0]).toMatchObject({ metric: "transaction_amount", value: 62, unit: "USD", sourceType: "cashflow", rawEventId: "raw-3" });
+    expect(observations[0].metadata).toMatchObject({ description: "Groceries", category: "groceries" });
+    expect(timelineEvents).toHaveLength(1);
+    expect(timelineEvents[0]).toMatchObject({ eventType: "transaction", title: "Groceries", sourceType: "cashflow", rawEventId: "raw-3" });
+    expect(timelineEvents[0].startedAt.toISOString()).toBe("2026-06-01T12:00:00.000Z");
+  });
+});

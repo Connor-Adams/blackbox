@@ -112,3 +112,11 @@ describe("extractRawMeta: manual recordId", () => {
     expect(meta.sourceRecordId).toBeNull();
   });
 });
+
+describe("extractRawMeta: cashflow", () => {
+  it("uses the cashflow recordId + timestamp", () => {
+    const meta = extractRawMeta("cashflow", { recordId: "tx-9", amount: 5, description: "x", timestamp: "2026-06-01T10:00:00Z" });
+    expect(meta.sourceRecordId).toBe("tx-9");
+    expect(meta.occurredAt.toISOString()).toBe("2026-06-01T10:00:00.000Z");
+  });
+});
