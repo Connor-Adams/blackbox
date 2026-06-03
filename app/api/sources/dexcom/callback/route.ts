@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { getDexcomEnv } from "@/lib/connectors/dexcom-env";
 import { exchangeCode } from "@/lib/connectors/dexcom-oauth";
 import { upsertLiveDexcomConnection } from "@/lib/db/sources";
+import { publicOrigin } from "@/lib/request-origin";
 
 export const dynamic = "force-dynamic";
 
 function back(request: Request, params: Record<string, string>): NextResponse {
   const qs = new URLSearchParams(params);
-  return NextResponse.redirect(new URL(`/sources?${qs}`, request.url));
+  return NextResponse.redirect(new URL(`/sources?${qs}`, publicOrigin(request)));
 }
 
 /** Read a single cookie value by exact name from a raw Cookie header. */

@@ -54,4 +54,20 @@ describe("GET /api/sources/dexcom/callback", () => {
     expect(errorOf(res).get("dexcom")).toBe("connected");
     expect(res.cookies.get("dexcom_oauth_state")?.value).toBe("");
   });
+
+  it("builds the redirect against the forwarded host (proxy), not the internal request url", async () => {
+    delete process.env.BLACKBOX_APP_URL;
+    const res = await GET(
+      new Request("http://localhost:8080/api/sources/dexcom/callback?code=abc&state=s", {
+        headers: {
+          cookie: "dexcom_oauth_state=mismatch",
+          "x-forwarded-host": "blackbox-production-d439.up.railway.app",
+          "x-forwarded-proto": "https",
+        },
+      }),
+    );
+    const loc = new URL(res.headers.get("location")!);
+    expect(loc.origin).toBe("https://blackbox-production-d439.up.railway.app");
+    expect(loc.pathname).toBe("/sources");
+  });
 });
