@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { dexcomConnector } from "@/lib/connectors/dexcom";
 import type { ConnectorSyncContext, DexcomCreds, SyncConnection } from "@/lib/connectors/types";
+import { glucoseNormalDay, glucoseVolatileDay } from "@/lib/mock/data";
 
 function ctxFor(connection: Partial<SyncConnection>, now: Date, saveCredentials = vi.fn(async () => {})): ConnectorSyncContext {
   return {
@@ -20,7 +21,7 @@ function tokenResponse(body: Record<string, unknown>) {
 describe("dexcomConnector (mock branch)", () => {
   it("emits seeded readings when the connection has no credentials", async () => {
     const out = await dexcomConnector.sync(ctxFor({ metadata: {} }, new Date("2026-06-03T00:00:00Z")));
-    expect(out.length).toBeGreaterThan(0);
+    expect(out.length).toBe(glucoseNormalDay.length + glucoseVolatileDay.length);
     expect(out[0]).toHaveProperty("value");
     expect(out[0]).toHaveProperty("unit");
   });
@@ -53,6 +54,22 @@ describe("dexcomConnector (live branch)", () => {
     const url = new URL(fetchImpl.mock.calls[0][0] as string);
     expect(url.pathname).toBe("/v3/users/self/egvs");
     expect((fetchImpl.mock.calls[0][1]!.headers as Record<string, string>).Authorization).toBe("Bearer at");
+    expect(url.searchParams.get("startDate")).toBe("2026-06-02T09:00:00");
+    expect(url.searchParams.get("endDate")).toBe("2026-06-03T09:00:00");
+    vi.unstubAllGlobals();
+  });
+
+  it("uses lastSyncAt as the window start when present", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => egvResponse([]));
+    vi.stubGlobal("fetch", fetchImpl);
+
+    await dexcomConnector.sync(
+      ctxFor({ metadata: { dexcom: creds }, lastSyncAt: new Date("2026-06-03T06:00:00Z") }, new Date("2026-06-03T09:00:00Z")),
+    );
+
+    const url = new URL(fetchImpl.mock.calls[0][0] as string);
+    expect(url.searchParams.get("startDate")).toBe("2026-06-03T06:00:00");
+    expect(url.searchParams.get("endDate")).toBe("2026-06-03T09:00:00");
     vi.unstubAllGlobals();
   });
 
