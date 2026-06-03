@@ -34,7 +34,7 @@ function jsonResponse(body: unknown, ok = true) {
 
 describe("exchangeCode", () => {
   it("POSTs the authorization_code grant and maps the token response", async () => {
-    const fetchImpl = vi.fn(async () =>
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
       jsonResponse({ access_token: "at", refresh_token: "rt", expires_in: 7200, scope: "offline_access" }),
     );
     const creds = await exchangeCode(env, "the-code", new Date("2026-06-03T00:00:00.000Z"), fetchImpl);
@@ -57,14 +57,14 @@ describe("exchangeCode", () => {
   });
 
   it("throws on a non-ok token response", async () => {
-    const fetchImpl = vi.fn(async () => jsonResponse({ error: "invalid_grant" }, false));
+    const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse({ error: "invalid_grant" }, false));
     await expect(exchangeCode(env, "bad", new Date(), fetchImpl)).rejects.toThrow(/dexcom token exchange failed/i);
   });
 });
 
 describe("refresh", () => {
   it("POSTs the refresh_token grant and maps the rotated tokens", async () => {
-    const fetchImpl = vi.fn(async () =>
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
       jsonResponse({ access_token: "at2", refresh_token: "rt2", expires_in: 3600, scope: "offline_access" }),
     );
     const creds = await refresh(env, "old-rt", new Date("2026-06-03T00:00:00.000Z"), fetchImpl);
