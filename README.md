@@ -73,3 +73,27 @@ pnpm
 Early planning / scaffold stage.
 
 Implementation should follow [docs/build-requirements.md](docs/build-requirements.md).
+
+## Development
+
+Prerequisites: Node 20+, pnpm, and a Postgres database (Railway, or any Postgres).
+
+```bash
+pnpm install
+cp .env.example .env.local        # then set DATABASE_URL (Railway Postgres URL)
+pnpm db:migrate                   # apply the schema
+pnpm db:seed                      # seed mock data (idempotent)
+pnpm dev                          # http://localhost:3000
+npx inngest-cli@latest dev        # (optional) drives the snapshot/insights jobs
+```
+
+Screens: `/today` (daily state), `/timeline` (events + glucose), `/insights` (rule-based findings), `/sources` (connections + sync).
+
+Scripts: `pnpm test` (Vitest, DB-free), `pnpm lint`, `pnpm build`, `pnpm db:generate` (author a migration), `pnpm db:studio`.
+
+## Deploy (Railway)
+
+1. Create a Railway project with a Postgres plugin; point the web service at this repo.
+2. Set env vars: `DATABASE_URL` (Railway provides it), `BLACKBOX_APP_URL`, and any connector/Inngest keys.
+3. `railway.json` runs `pnpm db:migrate` as the pre-deploy command and `pnpm start` to serve.
+4. After the first deploy, run `pnpm db:seed` against the Railway database to load mock data.
