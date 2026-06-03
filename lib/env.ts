@@ -1,8 +1,17 @@
 import { z } from "zod";
 
+const urlString = z.string().refine((value) => {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}, "must be a valid URL");
+
 export const envSchema = z.object({
-  DATABASE_URL: z.string().url(),
-  BLACKBOX_APP_URL: z.string().url().default("http://localhost:3000"),
+  DATABASE_URL: urlString,
+  BLACKBOX_APP_URL: urlString.default("http://localhost:3000"),
 });
 
 export type Env = z.infer<typeof envSchema>;
