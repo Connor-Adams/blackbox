@@ -7,7 +7,7 @@ import { dayRange } from "@/lib/domain/time";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const date = new URL(request.url).searchParams.get("date") ?? "2026-06-01";
+  const date = new URL(request.url).searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
   try {
     dayRange(date);
   } catch {

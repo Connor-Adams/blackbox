@@ -12,11 +12,12 @@ export default async function InsightsPage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const { date: rawDate } = await searchParams;
-  let date = rawDate ?? "2026-06-01";
+  const today = new Date().toISOString().slice(0, 10);
+  let date = rawDate ?? today;
   try {
     dayRange(date);
   } catch {
-    date = "2026-06-01";
+    date = today;
   }
 
   let rows = await getInsights(SEED_USER_ID, date);
