@@ -1,0 +1,32 @@
+name: release-drafter
+
+# Keeps a single draft GitHub Release continuously up to date. On every push to
+# main it redrafts the release notes and recomputes the next version (from the
+# labels release-drafter auto-applies to merged PRs). On PRs it just applies the
+# conventional-commit labels so the draft stays accurate. The draft is never
+# published automatically — a human publishes it, which fires
+# promote-to-production.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-drafter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-release-draft:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
