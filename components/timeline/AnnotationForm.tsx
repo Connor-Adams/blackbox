@@ -14,8 +14,7 @@ export function AnnotationForm({ date }: { date: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function submit() {
     setBusy(true);
     setError(null);
     const timestamp = new Date(`${date}T${time}:00Z`).toISOString();
@@ -35,7 +34,13 @@ export function AnnotationForm({ date }: { date: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-2 rounded-lg border border-border p-3">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+      className="space-y-2 rounded-lg border border-border p-3"
+    >
       <div className="text-sm font-medium">Add annotation</div>
       <div className="flex flex-wrap gap-2">
         <select value={type} onChange={(e) => setType(e.target.value)} className="rounded border border-border bg-background px-2 py-1 text-sm">
