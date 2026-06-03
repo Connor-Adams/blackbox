@@ -16,6 +16,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     sameSite: "lax",
     path: "/",
     maxAge: 600,
+    secure: process.env.NODE_ENV === "production",
   });
   return res;
 }
