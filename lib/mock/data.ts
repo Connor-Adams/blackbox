@@ -21,6 +21,7 @@ export const glucoseVolatileDay: DexcomReadingPayload[] = [
   { value: 3.2, unit: "mmol/L", timestamp: `${D}T14:00:00Z`, recordId: "vol-4", trend: "falling" },
   { value: 8.9, unit: "mmol/L", timestamp: `${D}T17:00:00Z`, recordId: "vol-5", trend: "rising" },
   { value: 12.1, unit: "mmol/L", timestamp: `${D}T20:00:00Z`, recordId: "vol-6", trend: "rising" },
+  { value: 14.0, unit: "mmol/L", timestamp: `${D}T17:00:00Z`, recordId: "vol-7", trend: "rising" },
 ];
 
 /** A day of manual annotations (meal, insulin, stress, exercise). */
