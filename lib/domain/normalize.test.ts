@@ -60,3 +60,42 @@ describe("normalize: manual", () => {
     expect(normalize(raw)).toEqual({ observations: [], timelineEvents: [] });
   });
 });
+
+describe("normalize: dexcom", () => {
+  const dbase = {
+    id: "raw-2",
+    userId: "user-1",
+    sourceConnectionId: "conn-2",
+    sourceRecordId: "reading-99",
+    occurredAt: new Date("2026-06-01T12:00:00Z"),
+    sourceType: "dexcom" as const,
+  };
+
+  it("maps a glucose reading to a glucose observation with attribution", () => {
+    const raw: RawEventInput = {
+      ...dbase,
+      payload: { value: 7.1, unit: "mmol/L", timestamp: "2026-06-01T12:05:00Z", trend: "flat", trendRate: 0.1 },
+    };
+    const { observations, timelineEvents } = normalize(raw);
+    expect(timelineEvents).toEqual([]);
+    expect(observations).toHaveLength(1);
+    const obs = observations[0];
+    expect(obs.metric).toBe("glucose");
+    expect(obs.sourceType).toBe("dexcom");
+    expect(obs.rawEventId).toBe("raw-2");
+    expect(obs.userId).toBe("user-1");
+    expect(obs.value).toBe(7.1);
+    expect(obs.unit).toBe("mmol/L");
+    expect(obs.observedAt.toISOString()).toBe("2026-06-01T12:05:00.000Z");
+    expect(obs.metadata).toEqual({ trend: "flat", trendRate: 0.1 });
+  });
+
+  it("omits trend fields from metadata when absent", () => {
+    const raw: RawEventInput = {
+      ...dbase,
+      payload: { value: 5.5, unit: "mmol/L", timestamp: "2026-06-01T13:00:00Z" },
+    };
+    const obs = normalize(raw).observations[0];
+    expect(obs.metadata).toEqual({});
+  });
+});

@@ -1,5 +1,6 @@
 import type { AnnotationType, TimelineEventType } from "@/lib/db/schema";
 import type {
+  DexcomReadingPayload,
   ManualAnnotationPayload,
   NormalizeResult,
   RawEventInput,
@@ -40,12 +41,36 @@ function normalizeManual(raw: RawEventInput): NormalizeResult {
   };
 }
 
+function normalizeDexcom(raw: RawEventInput): NormalizeResult {
+  const p = raw.payload as DexcomReadingPayload;
+  return {
+    observations: [
+      {
+        userId: raw.userId,
+        rawEventId: raw.id,
+        sourceType: "dexcom",
+        metric: "glucose",
+        value: p.value,
+        unit: p.unit,
+        observedAt: new Date(p.timestamp),
+        metadata: {
+          ...(p.trend !== undefined ? { trend: p.trend } : {}),
+          ...(p.trendRate !== undefined ? { trendRate: p.trendRate } : {}),
+        },
+      },
+    ],
+    timelineEvents: [],
+  };
+}
+
 /** Map a raw source payload to normalized observations + timeline events.
  *  Pure: no DB, no IO. Unsupported source types yield an empty result. */
 export function normalize(raw: RawEventInput): NormalizeResult {
   switch (raw.sourceType) {
     case "manual":
       return normalizeManual(raw);
+    case "dexcom":
+      return normalizeDexcom(raw);
     default:
       return EMPTY;
   }
