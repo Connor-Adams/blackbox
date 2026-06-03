@@ -1,0 +1,104 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: 'Breaking Changes'
+    labels:
+      - 'breaking'
+      - 'major'
+  - title: 'Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: 'Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bug'
+  - title: 'Performance'
+    labels:
+      - 'performance'
+  - title: 'Dependencies'
+    labels:
+      - 'dependencies'
+  - title: 'Maintenance'
+    labels:
+      - 'chore'
+      - 'refactor'
+      - 'test'
+      - 'build'
+      - 'ci'
+      - 'documentation'
+  - title: 'Other Changes'
+    labels:
+      - '*'
+
+exclude-labels:
+  - 'skip-changelog'
+
+version-resolver:
+  major:
+    labels:
+      - 'breaking'
+      - 'major'
+  minor:
+    labels:
+      - 'feature'
+      - 'minor'
+  patch:
+    labels:
+      - 'fix'
+      - 'patch'
+      - 'bug'
+      - 'performance'
+      - 'dependencies'
+  default: patch
+
+# Auto-apply labels by conventional-commit PR title prefix. The version-resolver
+# above then maps those labels to a semver bump: feat -> minor, fix|perf|deps ->
+# patch, `!` (breaking) -> major.
+autolabeler:
+  - label: 'feature'
+    title:
+      - '/^(\[codex\]\s+)?feat(\(.+\))?:/'
+  - label: 'fix'
+    branch:
+      - '/^fix\/.+/'
+    title:
+      - '/^(\[codex\]\s+)?fix(\(.+\))?:/'
+  - label: 'performance'
+    title:
+      - '/^(\[codex\]\s+)?perf(\(.+\))?:/'
+  - label: 'dependencies'
+    title:
+      - '/^(\[codex\]\s+)?deps(\(.+\))?:/'
+  - label: 'chore'
+    title:
+      - '/^(\[codex\]\s+)?chore(\(.+\))?:/'
+  - label: 'refactor'
+    title:
+      - '/^(\[codex\]\s+)?refactor(\(.+\))?:/'
+  - label: 'test'
+    title:
+      - '/^(\[codex\]\s+)?test(\(.+\))?:/'
+  - label: 'build'
+    title:
+      - '/^(\[codex\]\s+)?build(\(.+\))?:/'
+  - label: 'ci'
+    title:
+      - '/^(\[codex\]\s+)?ci(\(.+\))?:/'
+  - label: 'documentation'
+    title:
+      - '/^(\[codex\]\s+)?docs(\(.+\))?:/'
+  - label: 'breaking'
+    title:
+      - '/^(\[codex\]\s+)?[a-z]+(\(.+\))?!:/'
+
+change-template: '- $TITLE (#$NUMBER) by @$AUTHOR'
+change-title-escapes: '\<*_&'
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

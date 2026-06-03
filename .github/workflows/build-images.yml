@@ -1,0 +1,74 @@
+name: build-images
+
+# Build the production image on every push to main and push it to GHCR.
+# Merging to main does NOT deploy — deployment is gated behind publishing a
+# GitHub Release (see promote-to-production.yml). blackbox is a single service,
+# so unlike cashflow there is no content-hash matrix / skip-unchanged fan-out:
+# we always build the one image.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE/**'
+
+concurrency:
+  group: build-images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history so `git describe --tags` can resolve APP_VERSION.
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          APP_VERSION=$(git describe --tags --always --dirty)
+          echo "image=ghcr.io/${REPO_LC}" >> "$GITHUB_OUTPUT"
+          echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          # Keep a single-manifest image. build-push v6+ enables provenance
+          # attestations by default, which wraps the image in an index with an
+          # extra unknown/unknown manifest; the promote re-tag flow
+          # (imagetools create) doesn't need that.
+          provenance: false
+          push: true
+          # :sha-<full-commit> is the identity promote-to-production resolves by.
+          # Using the FULL 40-char github.sha (not an abbreviation) means promote
+          # can match it exactly via `git rev-parse HEAD` with zero ambiguity.
+          # :main is retained for traceability / as a promote fallback.
+          tags: |
+            ${{ steps.meta.outputs.image }}:main
+            ${{ steps.meta.outputs.image }}:sha-${{ github.sha }}
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.app_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
