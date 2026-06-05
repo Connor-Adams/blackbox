@@ -56,8 +56,9 @@ describe("normalize: manual", () => {
   });
 
   it("returns empty for an unsupported source type", () => {
-    const raw: RawEventInput = { ...base, sourceType: "garmin", payload: {} };
-    expect(normalize(raw)).toEqual({ observations: [], timelineEvents: [] });
+    // Use a cast to simulate an unknown future source type reaching normalize
+    const raw = { ...base, sourceType: "unknown_future_type" as "garmin", payload: {} };
+    expect(normalize(raw as RawEventInput)).toEqual({ observations: [], timelineEvents: [] });
   });
 });
 
@@ -114,5 +115,34 @@ describe("normalize: cashflow", () => {
     expect(timelineEvents).toHaveLength(1);
     expect(timelineEvents[0]).toMatchObject({ eventType: "transaction", title: "Groceries", sourceType: "cashflow", rawEventId: "raw-3" });
     expect(timelineEvents[0].startedAt.toISOString()).toBe("2026-06-01T12:00:00.000Z");
+  });
+});
+
+function raw(payload: unknown): RawEventInput {
+  return { id: "r1", userId: "u", sourceConnectionId: "c", sourceType: "garmin", sourceRecordId: "x", occurredAt: new Date("2026-06-01T08:00:00Z"), payload };
+}
+
+describe("normalize garmin", () => {
+  it("maps an observation payload to one observation", () => {
+    const out = normalize(raw({ kind: "observation", metric: "heart_rate", value: 61, unit: "bpm", timestamp: "2026-06-01T08:00:00Z", recordId: "heart_rate:1" }));
+    expect(out.observations).toEqual([
+      { userId: "u", rawEventId: "r1", sourceType: "garmin", metric: "heart_rate", value: 61, unit: "bpm", observedAt: new Date("2026-06-01T08:00:00Z"), metadata: {} },
+    ]);
+    expect(out.timelineEvents).toEqual([]);
+  });
+
+  it("maps an activity payload to a workout timeline event", () => {
+    const out = normalize(raw({ kind: "activity", recordId: "a1", activityType: "running", title: "Morning Run", startTimestamp: "2026-06-01T06:00:00Z", endTimestamp: "2026-06-01T06:40:00Z", metadata: { distance: 8000 } }));
+    expect(out.observations).toEqual([]);
+    expect(out.timelineEvents).toEqual([
+      { userId: "u", rawEventId: "r1", sourceType: "garmin", eventType: "workout", title: "Morning Run", description: null, startedAt: new Date("2026-06-01T06:00:00Z"), endedAt: new Date("2026-06-01T06:40:00Z"), metadata: { activityType: "running", distance: 8000 } },
+    ]);
+  });
+
+  it("maps a sleep payload to a sleep event + sleep_duration observation", () => {
+    const out = normalize(raw({ kind: "sleep", recordId: "sleep:2026-06-01", startTimestamp: "2026-05-31T23:00:00Z", endTimestamp: "2026-06-01T07:00:00Z", durationSeconds: 28800, stages: { deep: 7200, rem: 5400 } }));
+    expect(out.observations).toHaveLength(1);
+    expect(out.observations[0]).toMatchObject({ metric: "sleep_duration", value: 28800, unit: "s", metadata: { deep: 7200, rem: 5400 } });
+    expect(out.timelineEvents[0]).toMatchObject({ eventType: "sleep", title: "Sleep", endedAt: new Date("2026-06-01T07:00:00Z") });
   });
 });

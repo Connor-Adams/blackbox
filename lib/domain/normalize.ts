@@ -2,6 +2,7 @@ import type { AnnotationType, TimelineEventType } from "@/lib/db/schema";
 import type {
   CashflowTransactionPayload,
   DexcomReadingPayload,
+  GarminPayload,
   ManualAnnotationPayload,
   NormalizeResult,
   RawEventInput,
@@ -96,6 +97,44 @@ function normalizeCashflow(raw: RawEventInput): NormalizeResult {
   };
 }
 
+function normalizeGarmin(raw: RawEventInput): NormalizeResult {
+  const p = raw.payload as GarminPayload;
+  if (p.kind === "observation") {
+    return {
+      observations: [{
+        userId: raw.userId, rawEventId: raw.id, sourceType: "garmin",
+        metric: p.metric, value: p.value, unit: p.unit,
+        observedAt: new Date(p.timestamp), metadata: p.metadata ?? {},
+      }],
+      timelineEvents: [],
+    };
+  }
+  if (p.kind === "activity") {
+    return {
+      observations: [],
+      timelineEvents: [{
+        userId: raw.userId, rawEventId: raw.id, sourceType: "garmin",
+        eventType: "workout", title: p.title, description: null,
+        startedAt: new Date(p.startTimestamp), endedAt: new Date(p.endTimestamp),
+        metadata: { activityType: p.activityType, ...(p.metadata ?? {}) },
+      }],
+    };
+  }
+  return {
+    observations: [{
+      userId: raw.userId, rawEventId: raw.id, sourceType: "garmin",
+      metric: "sleep_duration", value: p.durationSeconds, unit: "s",
+      observedAt: new Date(p.startTimestamp), metadata: p.stages ?? {},
+    }],
+    timelineEvents: [{
+      userId: raw.userId, rawEventId: raw.id, sourceType: "garmin",
+      eventType: "sleep", title: "Sleep", description: null,
+      startedAt: new Date(p.startTimestamp), endedAt: new Date(p.endTimestamp),
+      metadata: { durationSeconds: p.durationSeconds, ...(p.stages ?? {}) },
+    }],
+  };
+}
+
 /** Map a raw source payload to normalized observations + timeline events.
  *  Pure: no DB, no IO. Unsupported source types yield an empty result. */
 export function normalize(raw: RawEventInput): NormalizeResult {
@@ -106,6 +145,8 @@ export function normalize(raw: RawEventInput): NormalizeResult {
       return normalizeDexcom(raw);
     case "cashflow":
       return normalizeCashflow(raw);
+    case "garmin":
+      return normalizeGarmin(raw);
     default:
       return EMPTY;
   }

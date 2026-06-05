@@ -1,9 +1,10 @@
 import type { IngestResult } from "@/lib/domain/ingest";
-import type { Connector, ConnectorSyncContext, DexcomCreds, SyncConnection } from "./types";
+import type { Connector, ConnectorSyncContext, SourceCreds, SyncConnection } from "./types";
+import type { SourceType } from "@/lib/db/schema";
 
 /** Side-effecting operations executeSync needs. DB-backed impl lives in lib/db. */
 export interface SyncStore {
-  saveCredentials(connectionId: string, creds: DexcomCreds): Promise<void>;
+  saveCredentials(connectionId: string, sourceType: SourceType, creds: SourceCreds): Promise<void>;
   ingest(
     conn: { id: string; userId: string; sourceType: SyncConnection["sourceType"] },
     payloads: unknown[],
@@ -28,7 +29,7 @@ export async function executeSync(
     const ctx: ConnectorSyncContext = {
       connection: conn,
       now,
-      saveCredentials: (creds) => store.saveCredentials(conn.id, creds),
+      saveCredentials: (creds) => store.saveCredentials(conn.id, conn.sourceType, creds),
     };
     const payloads = await connector.sync(ctx);
     const result = await store.ingest(

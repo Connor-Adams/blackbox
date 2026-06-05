@@ -22,7 +22,22 @@ describe("extractRawMeta", () => {
     expect(meta.sourceRecordId).toBeNull();
   });
   it("throws for a source type ingest does not support", () => {
-    expect(() => extractRawMeta("garmin", {})).toThrow();
+    expect(() => extractRawMeta("unknown_future_type" as "garmin", {})).toThrow();
+  });
+  it("garmin observation: uses recordId + timestamp", () => {
+    const meta = extractRawMeta("garmin", { kind: "observation", metric: "heart_rate", value: 61, unit: "bpm", timestamp: "2026-06-01T08:00:00Z", recordId: "heart_rate:1" });
+    expect(meta.sourceRecordId).toBe("heart_rate:1");
+    expect(meta.occurredAt.toISOString()).toBe("2026-06-01T08:00:00.000Z");
+  });
+  it("garmin activity: uses recordId + startTimestamp", () => {
+    const meta = extractRawMeta("garmin", { kind: "activity", recordId: "a1", activityType: "running", title: "Morning Run", startTimestamp: "2026-06-01T06:00:00Z", endTimestamp: "2026-06-01T06:40:00Z" });
+    expect(meta.sourceRecordId).toBe("a1");
+    expect(meta.occurredAt.toISOString()).toBe("2026-06-01T06:00:00.000Z");
+  });
+  it("garmin sleep: uses recordId + startTimestamp", () => {
+    const meta = extractRawMeta("garmin", { kind: "sleep", recordId: "sleep:2026-06-01", startTimestamp: "2026-05-31T23:00:00Z", endTimestamp: "2026-06-01T07:00:00Z", durationSeconds: 28800 });
+    expect(meta.sourceRecordId).toBe("sleep:2026-06-01");
+    expect(meta.occurredAt.toISOString()).toBe("2026-05-31T23:00:00.000Z");
   });
 });
 

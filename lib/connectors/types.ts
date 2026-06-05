@@ -9,6 +9,26 @@ export interface DexcomCreds {
   apiBase: string;
 }
 
+/** Persisted garmin-connect-client session bundle (its PersistedSession).
+ *  Stored in source_connection.metadata.garmin. The lib auto-refreshes the
+ *  OAuth2 token using refresh_token + diClientId — no OAuth1 token. */
+export interface GarminCreds {
+  cookies?: string;
+  oauth2Token: {
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    refresh_token: string;
+    refresh_token_expires_in: number;
+    expires_at?: number;
+    refresh_token_expires_at?: number;
+  };
+  diClientId: string;
+}
+
+/** Any source's persisted credential bundle. */
+export type SourceCreds = DexcomCreds | GarminCreds;
+
 /** The connection a connector is syncing, as the connector needs to see it. */
 export interface SyncConnection {
   id: string;
@@ -23,7 +43,7 @@ export interface SyncConnection {
 export interface ConnectorSyncContext {
   connection: SyncConnection;
   now: Date;
-  saveCredentials(creds: DexcomCreds): Promise<void>;
+  saveCredentials(creds: SourceCreds): Promise<void>;
 }
 
 /** A source connector emits raw payloads to be run through the ingest pipeline.

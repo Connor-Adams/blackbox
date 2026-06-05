@@ -1,11 +1,11 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { sourceConnection } from "@/lib/db/schema";
+import { sourceConnection, type SourceType } from "@/lib/db/schema";
 import { DbIngestStore } from "@/lib/db/store";
 import { ingestRawEvents } from "@/lib/domain/ingest";
 import { getConnector } from "@/lib/connectors";
 import { executeSync, type SyncResult, type SyncStore } from "@/lib/connectors/sync";
-import type { DexcomCreds, SyncConnection } from "@/lib/connectors/types";
+import type { DexcomCreds, SourceCreds, SyncConnection } from "@/lib/connectors/types";
 import { SEED_USER_ID, LIVE_DEXCOM_CONNECTION_ID } from "@/lib/constants";
 
 type Db = ReturnType<typeof getDb>;
@@ -19,13 +19,13 @@ export async function listSourceConnections(userId: string, db: Db = getDb()) {
 class DbSyncStore implements SyncStore {
   constructor(private readonly db: Db) {}
 
-  async saveCredentials(connectionId: string, creds: DexcomCreds): Promise<void> {
+  async saveCredentials(connectionId: string, sourceType: SourceType, creds: SourceCreds): Promise<void> {
     const [row] = await this.db
       .select({ metadata: sourceConnection.metadata })
       .from(sourceConnection)
       .where(eq(sourceConnection.id, connectionId))
       .limit(1);
-    const metadata = { ...(row?.metadata ?? {}), dexcom: creds };
+    const metadata = { ...(row?.metadata ?? {}), [sourceType]: creds };
     await this.db.update(sourceConnection).set({ metadata }).where(eq(sourceConnection.id, connectionId));
   }
 
