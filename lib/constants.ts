@@ -10,3 +10,6 @@ export const SEED_CASHFLOW_CONNECTION_ID = "00000000-0000-4000-8000-000000000012
 // Fixed id for the live (OAuth-connected) Dexcom connection, distinct from the
 // mock seed connection so live data and mock demo data coexist.
 export const LIVE_DEXCOM_CONNECTION_ID = "00000000-0000-4000-8000-000000000020";
+
+export const SEED_GARMIN_CONNECTION_ID = "00000000-0000-4000-8000-000000000013";
+export const LIVE_GARMIN_CONNECTION_ID = "00000000-0000-4000-8000-000000000021";

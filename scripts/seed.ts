@@ -5,8 +5,10 @@ import {
   SEED_MANUAL_CONNECTION_ID,
   SEED_DEXCOM_CONNECTION_ID,
   SEED_CASHFLOW_CONNECTION_ID,
+  SEED_GARMIN_CONNECTION_ID,
 } from "@/lib/constants";
 import { glucoseNormalDay, glucoseVolatileDay, manualNotesDay, cashflowDay } from "@/lib/mock/data";
+import { garminMockDay } from "@/lib/mock/garmin";
 
 async function main() {
   void getDb();
@@ -16,11 +18,14 @@ async function main() {
   const manual = await ensureSourceConnection({ id: SEED_MANUAL_CONNECTION_ID, sourceType: "manual", displayName: "Manual log" });
   const cashflow = await ensureSourceConnection({ id: SEED_CASHFLOW_CONNECTION_ID, sourceType: "cashflow", displayName: "Cashflow (mock)" });
 
+  const garmin = await ensureSourceConnection({ id: SEED_GARMIN_CONNECTION_ID, sourceType: "garmin", displayName: "Garmin (mock)" });
+
   const dexResult = await ingestRawEvents(store, dexcom, [...glucoseNormalDay, ...glucoseVolatileDay]);
   const manResult = await ingestRawEvents(store, manual, manualNotesDay);
   const cashResult = await ingestRawEvents(store, cashflow, cashflowDay);
+  const garResult = await ingestRawEvents(store, garmin, garminMockDay);
 
-  console.log("Seed complete:", { dexcom: dexResult, manual: manResult, cashflow: cashResult });
+  console.log("Seed complete:", { dexcom: dexResult, manual: manResult, cashflow: cashResult, garmin: garResult });
   process.exit(0);
 }
 
