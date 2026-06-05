@@ -69,3 +69,40 @@ export interface CashflowTransactionPayload {
   timestamp: string; // ISO 8601
   category?: string;
 }
+
+/** Garmin connector payloads. One observation payload per intraday sample;
+ *  `recordId` is the raw_event dedupe key (stable across re-syncs). */
+export interface GarminObservationPayload {
+  kind: "observation";
+  metric: string; // an ObservationMetric
+  value: number;
+  unit: string;
+  timestamp: string; // ISO 8601
+  recordId: string; // `${metric}:${epochMs}`
+  metadata?: Record<string, unknown>;
+}
+
+export interface GarminActivityPayload {
+  kind: "activity";
+  recordId: string; // garmin activityId
+  activityType: string;
+  title: string;
+  startTimestamp: string; // ISO 8601
+  endTimestamp: string; // ISO 8601
+  metadata?: Record<string, unknown>; // distance, durationSeconds, calories…
+}
+
+export interface GarminSleepPayload {
+  kind: "sleep";
+  recordId: string; // `sleep:${YYYY-MM-DD}`
+  startTimestamp: string;
+  endTimestamp: string;
+  durationSeconds: number;
+  stages?: Record<string, number>; // light/deep/rem/awake seconds
+  metadata?: Record<string, unknown>;
+}
+
+export type GarminPayload =
+  | GarminObservationPayload
+  | GarminActivityPayload
+  | GarminSleepPayload;
