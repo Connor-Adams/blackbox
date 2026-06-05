@@ -2,6 +2,7 @@ import type { SourceType } from "@/lib/db/schema";
 import type {
   CashflowTransactionPayload,
   DexcomReadingPayload,
+  GarminPayload,
   ManualAnnotationPayload,
   NormalizedObservation,
   NormalizedTimelineEvent,
@@ -45,6 +46,11 @@ export function extractRawMeta(
     case "cashflow": {
       const p = payload as CashflowTransactionPayload;
       return { sourceRecordId: p.recordId ?? null, occurredAt: new Date(p.timestamp) };
+    }
+    case "garmin": {
+      const p = payload as GarminPayload;
+      const ts = p.kind === "observation" ? p.timestamp : p.startTimestamp;
+      return { sourceRecordId: p.recordId ?? null, occurredAt: new Date(ts) };
     }
     default:
       throw new Error(`ingest does not support source type: ${sourceType}`);
