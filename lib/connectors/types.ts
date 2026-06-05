@@ -43,7 +43,7 @@ export interface SyncConnection {
 export interface ConnectorSyncContext {
   connection: SyncConnection;
   now: Date;
-  saveCredentials(creds: DexcomCreds): Promise<void>;
+  saveCredentials(creds: SourceCreds): Promise<void>;
 }
 
 /** A source connector emits raw payloads to be run through the ingest pipeline.

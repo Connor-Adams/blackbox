@@ -25,6 +25,8 @@ export type ImportStatus = (typeof importStatuses)[number];
 export const observationMetrics = [
   "glucose", "cash_balance", "daily_spend", "transaction_amount",
   "heart_rate", "hrv", "stress", "steps", "sleep_duration", "body_battery",
+  "resting_heart_rate", "spo2", "respiration", "vo2max",
+  "floors", "intensity_minutes", "calories", "training_readiness",
 ] as const;
 export type ObservationMetric = (typeof observationMetrics)[number];
 

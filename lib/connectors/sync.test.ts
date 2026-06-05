@@ -49,7 +49,7 @@ describe("executeSync", () => {
 
     await executeSync(store, connector, conn, new Date());
 
-    expect(store.saveCredentials).toHaveBeenCalledWith("conn-1", creds);
+    expect(store.saveCredentials).toHaveBeenCalledWith("conn-1", "dexcom", creds);
   });
 
   it("captures a thrown error: marks error and returns ok:false", async () => {
