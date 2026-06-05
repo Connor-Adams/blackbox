@@ -15,7 +15,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:reset": "tsx scripts/reset.ts",
-    "db:sync": "tsx scripts/sync.ts"
+    "db:sync": "tsx scripts/sync.ts",
+    "garmin:spike": "tsx scripts/garmin-spike.ts"
   },
   "engines": {
     "node": ">=20"
@@ -27,8 +28,10 @@
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.44.1",
+    "garmin-connect-client": "^2.0.0",
     "inngest": "^3.27.0",
     "lucide-react": "^1.17.0",
+    "luxon": "^3.7.2",
     "next": "16.2.7",
     "postgres": "^3.4.7",
     "react": "19.2.4",
@@ -41,6 +44,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/luxon": "^3.7.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -49,5 +53,11 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "node-libcurl-ja3"
+    ]
   }
 }
