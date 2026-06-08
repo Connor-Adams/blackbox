@@ -13,6 +13,11 @@ import {
   mapTrainingReadiness,
   mapActivities,
   mapSleep,
+  mapWeight,
+  mapRacePredictions,
+  mapEnduranceScore,
+  mapFitnessAge,
+  mapSleepScore,
 } from "@/lib/connectors/garmin-map";
 
 describe("gmtToMs", () => {
@@ -134,5 +139,47 @@ describe("mapSleep", () => {
   });
   it("returns null when the DTO is missing required fields", () => {
     expect(mapSleep({})).toBeNull();
+  });
+});
+
+describe("additional metrics", () => {
+  it("mapWeight converts grams to kg and skips null composition", () => {
+    const out = mapWeight({
+      dailyWeightSummaries: [
+        { latestWeight: { weight: 80900, bodyFat: null, muscleMass: null, timestampGMT: 1780347395000, calendarDate: "2026-06-01" } },
+      ],
+    });
+    expect(out).toEqual([
+      { kind: "observation", metric: "weight", value: 80.9, unit: "kg", timestamp: new Date(1780347395000).toISOString(), recordId: "weight:1780347395000" },
+    ]);
+  });
+
+  it("mapRacePredictions maps each predicted time in seconds", () => {
+    const out = mapRacePredictions({ time5K: 1833, time10K: 4067, timeHalfMarathon: 9789, timeMarathon: 23482, calendarDate: "2026-06-07" });
+    expect(out.map((o) => [o.metric, o.value])).toEqual([
+      ["race_time_5k", 1833], ["race_time_10k", 4067], ["race_time_half_marathon", 9789], ["race_time_marathon", 23482],
+    ]);
+    expect(out[0].timestamp).toBe(new Date(gmtToMs("2026-06-07T12:00:00")).toISOString());
+  });
+
+  it("mapEnduranceScore reads overallScore, skipping null", () => {
+    expect(mapEnduranceScore({ overallScore: 4140, calendarDate: "2026-06-07" })[0]).toMatchObject({ metric: "endurance_score", value: 4140 });
+    expect(mapEnduranceScore({ overallScore: null, calendarDate: "2026-06-07" })).toEqual([]);
+  });
+
+  it("mapFitnessAge emits fitness_age (rounded) + bmi from components", () => {
+    const out = mapFitnessAge({
+      fitnessAge: 20.60705266103952,
+      lastUpdated: "2026-06-05T00:00:00.0",
+      components: { bmi: { value: 19.6, lastMeasurementDate: "2026-06-01" } },
+    });
+    expect(out.find((o) => o.metric === "fitness_age")).toMatchObject({ value: 20.6, unit: "yr" });
+    expect(out.find((o) => o.metric === "bmi")).toMatchObject({ value: 19.6 });
+  });
+
+  it("mapSleepScore reads dailySleepDTO.sleepScores.overall.value", () => {
+    const out = mapSleepScore({ dailySleepDTO: { sleepScores: { overall: { value: 61 } }, calendarDate: "2026-06-06", sleepStartTimestampGMT: 1780814443000 } });
+    expect(out[0]).toMatchObject({ metric: "sleep_score", value: 61 });
+    expect(mapSleepScore({ dailySleepDTO: { calendarDate: "2026-06-06" } })).toEqual([]);
   });
 });

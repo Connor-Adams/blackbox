@@ -1,7 +1,7 @@
 import type { Connector, ConnectorSyncContext, GarminCreds } from "./types";
 import { garminMockDay } from "@/lib/mock/garmin";
 import { httpFromCreds } from "./garmin-auth";
-import { fetchActivities, fetchDay, getDisplayName, syncDates } from "./garmin-api";
+import { fetchActivities, fetchDay, fetchWindowExtras, getDisplayName, syncDates } from "./garmin-api";
 
 /** Polite delay between per-day fetches on multi-day (backfill) syncs. */
 const RATE_LIMIT_MS = 1000;
@@ -37,6 +37,7 @@ export const garminConnector: Connector = {
       if (i < dates.length - 1) await sleep(RATE_LIMIT_MS);
     }
     payloads.push(...(await fetchActivities(http, dates[0], dates[dates.length - 1])));
+    payloads.push(...(await fetchWindowExtras(http, displayName, dates[0], dates[dates.length - 1])));
     return payloads;
   },
 };
