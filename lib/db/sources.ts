@@ -5,8 +5,8 @@ import { DbIngestStore } from "@/lib/db/store";
 import { ingestRawEvents } from "@/lib/domain/ingest";
 import { getConnector } from "@/lib/connectors";
 import { executeSync, type SyncResult, type SyncStore } from "@/lib/connectors/sync";
-import type { DexcomCreds, SourceCreds, SyncConnection } from "@/lib/connectors/types";
-import { SEED_USER_ID, LIVE_DEXCOM_CONNECTION_ID } from "@/lib/constants";
+import type { DexcomCreds, GarminCreds, SourceCreds, SyncConnection } from "@/lib/connectors/types";
+import { SEED_USER_ID, LIVE_DEXCOM_CONNECTION_ID, LIVE_GARMIN_CONNECTION_ID } from "@/lib/constants";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -106,4 +106,31 @@ export async function upsertLiveDexcomConnection(creds: DexcomCreds, db: Db = ge
     });
   }
   return LIVE_DEXCOM_CONNECTION_ID;
+}
+
+/** Create or update the dedicated live Garmin connection with a fresh session bundle. */
+export async function upsertLiveGarminConnection(creds: GarminCreds, db: Db = getDb()): Promise<string> {
+  const [existing] = await db
+    .select({ id: sourceConnection.id, metadata: sourceConnection.metadata })
+    .from(sourceConnection)
+    .where(eq(sourceConnection.id, LIVE_GARMIN_CONNECTION_ID))
+    .limit(1);
+
+  if (existing) {
+    const metadata = { ...(existing.metadata ?? {}), garmin: creds };
+    await db
+      .update(sourceConnection)
+      .set({ status: "active", metadata })
+      .where(eq(sourceConnection.id, LIVE_GARMIN_CONNECTION_ID));
+  } else {
+    await db.insert(sourceConnection).values({
+      id: LIVE_GARMIN_CONNECTION_ID,
+      userId: SEED_USER_ID,
+      sourceType: "garmin",
+      displayName: "Garmin",
+      status: "active",
+      metadata: { garmin: creds },
+    });
+  }
+  return LIVE_GARMIN_CONNECTION_ID;
 }

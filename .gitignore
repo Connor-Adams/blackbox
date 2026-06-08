@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# garmin spike session bundle (contains live OAuth tokens — never commit)
+.garmin-session.local.json
+
 # vercel
 .vercel
 
