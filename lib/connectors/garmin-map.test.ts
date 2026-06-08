@@ -46,12 +46,15 @@ describe("mapStress / mapSpo2 / mapRespiration", () => {
 });
 
 describe("mapBodyBattery", () => {
-  it("reads the level as the last element of each row", () => {
-    const out = mapBodyBattery([{ bodyBatteryValuesArray: [[1780718400000, "ACTIVE", 73], [1780722000000, "CHARGING", 80]] }]);
-    expect(out).toEqual([
-      { kind: "observation", metric: "body_battery", value: 73, unit: "score", timestamp: "2026-06-06T04:00:00.000Z", recordId: "body_battery:1780718400000" },
-      { kind: "observation", metric: "body_battery", value: 80, unit: "score", timestamp: "2026-06-06T05:00:00.000Z", recordId: "body_battery:1780722000000" },
-    ]);
+  it("reads the level at index 2 of a 4-element dailyStress row [ts, status, level, version]", () => {
+    // The 4th element (version, constant 3) must NOT be mistaken for the level.
+    const out = mapBodyBattery([{ bodyBatteryValuesArray: [[1780718400000, "MEASURED", 5, 3], [1780761600000, "MEASURED", 36, 3]] }]);
+    expect(out.map((o) => o.value)).toEqual([5, 36]);
+    expect(out[0]).toMatchObject({ metric: "body_battery", unit: "score", recordId: "body_battery:1780718400000" });
+  });
+  it("reads the level at index 2 of a 3-element reports row [ts, status, level]", () => {
+    const out = mapBodyBattery([{ bodyBatteryValuesArray: [[1780718400000, "ACTIVE", 73]] }]);
+    expect(out[0]).toMatchObject({ metric: "body_battery", value: 73 });
   });
 });
 

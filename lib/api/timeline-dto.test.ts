@@ -32,4 +32,26 @@ describe("serializeTimeline", () => {
     expect(dto.glucose.map((g) => g.value)).toEqual([5, 7]);
     expect(dto.glucose[0]).toEqual({ observedAt: "2026-06-01T08:00:00.000Z", value: 5, unit: "mmol/L" });
   });
+  it("groups non-glucose, non-finance observations into per-metric series (densest first, sorted points)", () => {
+    const dto = serializeTimeline("2026-06-01", {
+      events: [] as never,
+      observations: [
+        obs({ sourceType: "garmin", metric: "heart_rate", value: 60, unit: "bpm", observedAt: new Date("2026-06-01T10:00:00Z") }),
+        obs({ sourceType: "garmin", metric: "heart_rate", value: 62, unit: "bpm", observedAt: new Date("2026-06-01T09:00:00Z") }),
+        obs({ sourceType: "garmin", metric: "vo2max", value: 37, unit: "ml/kg/min" }),
+        obs({ metric: "glucose", value: 5 }), // excluded — surfaced via the glucose field
+        obs({ metric: "transaction_amount", value: 10, unit: "USD" }), // excluded — finance lives on /money
+      ] as never,
+    });
+    expect(dto.series.map((s) => s.metric)).toEqual(["heart_rate", "vo2max"]); // densest first
+    expect(dto.series[0]).toEqual({
+      metric: "heart_rate",
+      unit: "bpm",
+      points: [
+        { observedAt: "2026-06-01T09:00:00.000Z", value: 62 },
+        { observedAt: "2026-06-01T10:00:00.000Z", value: 60 },
+      ],
+    });
+    expect(dto.series.some((s) => s.metric === "transaction_amount" || s.metric === "glucose")).toBe(false);
+  });
 });
