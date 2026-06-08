@@ -27,6 +27,12 @@ export const observationMetrics = [
   "heart_rate", "hrv", "stress", "steps", "sleep_duration", "body_battery",
   "resting_heart_rate", "spo2", "respiration", "vo2max",
   "floors", "intensity_minutes", "calories", "training_readiness",
+  // body composition + wellness
+  "weight", "bmi", "body_fat", "muscle_mass", "body_water", "hydration",
+  "blood_pressure_systolic", "blood_pressure_diastolic", "sleep_score",
+  // fitness / performance
+  "fitness_age", "endurance_score", "hill_score",
+  "race_time_5k", "race_time_10k", "race_time_half_marathon", "race_time_marathon",
 ] as const;
 export type ObservationMetric = (typeof observationMetrics)[number];
 

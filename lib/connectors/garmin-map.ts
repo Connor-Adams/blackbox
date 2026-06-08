@@ -219,3 +219,115 @@ export function mapSleep(json: {
     ...(Object.keys(stages).length ? { stages } : {}),
   };
 }
+
+/** A calendar-date daily metric lands at noon UTC so it falls within that day. */
+function dayMs(calendarDate: string): number {
+  return gmtToMs(`${calendarDate}T12:00:00`);
+}
+
+/** weight-service/weight/range: body weight (grams→kg) + composition. */
+export function mapWeight(json: {
+  dailyWeightSummaries?: {
+    latestWeight?: {
+      weight?: number | null;
+      bodyFat?: number | null;
+      muscleMass?: number | null;
+      bodyWater?: number | null;
+      timestampGMT?: number | null;
+      calendarDate?: string;
+    };
+  }[];
+}): GarminObservationPayload[] {
+  const out: GarminObservationPayload[] = [];
+  for (const d of json.dailyWeightSummaries ?? []) {
+    const w = d.latestWeight;
+    if (!w) continue;
+    const at = w.timestampGMT ?? (w.calendarDate ? dayMs(w.calendarDate) : null);
+    if (at == null) continue;
+    if (w.weight != null) out.push(obs("weight", "kg", at, Math.round(w.weight / 100) / 10));
+    if (w.bodyFat != null) out.push(obs("body_fat", "%", at, w.bodyFat));
+    if (w.muscleMass != null) out.push(obs("muscle_mass", "kg", at, Math.round(w.muscleMass / 100) / 10));
+    if (w.bodyWater != null) out.push(obs("body_water", "%", at, w.bodyWater));
+  }
+  return out;
+}
+
+/** usersummary hydration: daily intake (ml). */
+export function mapHydration(json: { valueInML?: number | null; calendarDate?: string }): GarminObservationPayload[] {
+  if (json.valueInML == null || !json.calendarDate) return [];
+  return [obs("hydration", "ml", dayMs(json.calendarDate), json.valueInML)];
+}
+
+/** bloodpressure range: systolic/diastolic per measurement. */
+export function mapBloodPressure(json: {
+  measurementSummaries?: { measurements?: { systolic?: number; diastolic?: number; measurementTimestampGMT?: string }[] }[];
+}): GarminObservationPayload[] {
+  const out: GarminObservationPayload[] = [];
+  for (const summary of json.measurementSummaries ?? []) {
+    for (const m of summary.measurements ?? []) {
+      if (!m.measurementTimestampGMT) continue;
+      const at = gmtToMs(m.measurementTimestampGMT);
+      if (m.systolic != null) out.push(obs("blood_pressure_systolic", "mmHg", at, m.systolic));
+      if (m.diastolic != null) out.push(obs("blood_pressure_diastolic", "mmHg", at, m.diastolic));
+    }
+  }
+  return out;
+}
+
+/** fitnessage: fitness age (years) + BMI from its components. */
+export function mapFitnessAge(json: {
+  fitnessAge?: number | null;
+  lastUpdated?: string;
+  components?: { bmi?: { value?: number | null; lastMeasurementDate?: string } };
+}): GarminObservationPayload[] {
+  if (!json.lastUpdated) return [];
+  const at = gmtToMs(json.lastUpdated);
+  const out: GarminObservationPayload[] = [];
+  if (json.fitnessAge != null) out.push(obs("fitness_age", "yr", at, Math.round(json.fitnessAge * 10) / 10));
+  const bmi = json.components?.bmi;
+  if (bmi?.value != null) {
+    out.push(obs("bmi", "", bmi.lastMeasurementDate ? dayMs(bmi.lastMeasurementDate) : at, Math.round(bmi.value * 10) / 10));
+  }
+  return out;
+}
+
+/** endurancescore: overall endurance score. */
+export function mapEnduranceScore(json: { overallScore?: number | null; calendarDate?: string }): GarminObservationPayload[] {
+  if (json.overallScore == null || !json.calendarDate) return [];
+  return [obs("endurance_score", "score", dayMs(json.calendarDate), json.overallScore)];
+}
+
+/** hillscore: overall hill score (often null between hill workouts). */
+export function mapHillScore(json: { overallScore?: number | null; calendarDate?: string }): GarminObservationPayload[] {
+  if (json.overallScore == null || !json.calendarDate) return [];
+  return [obs("hill_score", "score", dayMs(json.calendarDate), json.overallScore)];
+}
+
+/** racepredictions/latest: predicted race times (seconds). */
+export function mapRacePredictions(json: {
+  time5K?: number | null;
+  time10K?: number | null;
+  timeHalfMarathon?: number | null;
+  timeMarathon?: number | null;
+  calendarDate?: string;
+}): GarminObservationPayload[] {
+  if (!json.calendarDate) return [];
+  const at = dayMs(json.calendarDate);
+  const out: GarminObservationPayload[] = [];
+  if (json.time5K != null) out.push(obs("race_time_5k", "s", at, json.time5K));
+  if (json.time10K != null) out.push(obs("race_time_10k", "s", at, json.time10K));
+  if (json.timeHalfMarathon != null) out.push(obs("race_time_half_marathon", "s", at, json.timeHalfMarathon));
+  if (json.timeMarathon != null) out.push(obs("race_time_marathon", "s", at, json.timeMarathon));
+  return out;
+}
+
+/** dailySleepData: overall sleep score (0-100). */
+export function mapSleepScore(json: {
+  dailySleepDTO?: { sleepScores?: { overall?: { value?: number } }; calendarDate?: string; sleepStartTimestampGMT?: number };
+}): GarminObservationPayload[] {
+  const d = json.dailySleepDTO;
+  const v = d?.sleepScores?.overall?.value;
+  if (v == null || !d?.calendarDate) return [];
+  const at = d.sleepStartTimestampGMT ?? dayMs(d.calendarDate);
+  return [obs("sleep_score", "score", at, v)];
+}

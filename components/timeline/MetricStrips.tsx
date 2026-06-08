@@ -21,6 +21,22 @@ const LABELS: Record<string, string> = {
   vo2max: "VO₂ max",
   training_readiness: "Training readiness",
   sleep_duration: "Sleep",
+  sleep_score: "Sleep score",
+  weight: "Weight",
+  bmi: "BMI",
+  body_fat: "Body fat",
+  muscle_mass: "Muscle mass",
+  body_water: "Body water",
+  hydration: "Hydration",
+  blood_pressure_systolic: "BP systolic",
+  blood_pressure_diastolic: "BP diastolic",
+  fitness_age: "Fitness age",
+  endurance_score: "Endurance",
+  hill_score: "Hill score",
+  race_time_5k: "5K",
+  race_time_10k: "10K",
+  race_time_half_marathon: "Half marathon",
+  race_time_marathon: "Marathon",
 };
 
 function label(metric: string): string {
@@ -33,7 +49,20 @@ function formatValue(metric: string, value: number): string {
     const m = Math.round((value % 3600) / 60);
     return `${h}h ${m}m`;
   }
+  if (metric.startsWith("race_time_")) {
+    const total = Math.round(value);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+  }
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+/** Metrics whose value is self-describing (no unit suffix in chips). */
+function hideUnit(metric: string): boolean {
+  return metric === "sleep_duration" || metric.startsWith("race_time_");
 }
 
 function timeOf(iso: string): string {
@@ -81,7 +110,7 @@ export function MetricStrips({ series }: { series: MetricSeriesDTO[] }) {
                 <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label(s.metric)}</div>
                 <div className="text-sm font-medium tabular-nums">
                   {formatValue(s.metric, latest.value)}
-                  {s.metric !== "sleep_duration" && <span className="ml-1 text-xs font-normal text-muted-foreground">{s.unit}</span>}
+                  {!hideUnit(s.metric) && <span className="ml-1 text-xs font-normal text-muted-foreground">{s.unit}</span>}
                 </div>
               </div>
             );
