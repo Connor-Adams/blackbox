@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import { inngest } from "@/lib/inngest/client";
 import { dayRange } from "@/lib/domain/time";
+import { computeAndStoreInsights } from "@/lib/db/insights";
+import { SEED_USER_ID } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
+/** Recompute + persist the day's insights synchronously (idempotent upsert).
+ *  Synchronous so a cron/trigger actually runs it — there is no Inngest worker
+ *  in this deployment. `?date=YYYY-MM-DD` (defaults to today, UTC). */
 export async function POST(request: Request) {
   const date = new URL(request.url).searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
   try {
@@ -11,6 +15,6 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid date (expected YYYY-MM-DD)" }, { status: 400 });
   }
-  await inngest.send({ name: "insights/recompute.requested", data: { date } });
-  return NextResponse.json({ ok: true, date }, { status: 202 });
+  const count = await computeAndStoreInsights(SEED_USER_ID, date);
+  return NextResponse.json({ ok: true, date, count });
 }
