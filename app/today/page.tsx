@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getTimeline } from "@/lib/db/store";
 import { computeDailySnapshot } from "@/lib/domain/snapshot";
+import { getInsights } from "@/lib/db/insights";
+import { serializeInsights } from "@/lib/api/insight-dto";
 import { SEED_USER_ID } from "@/lib/constants";
 import { dayRange } from "@/lib/domain/time";
 import { StateCard } from "@/components/today/StateCard";
@@ -32,6 +34,7 @@ export default async function TodayPage({
     observations: observations.map((o) => ({ metric: o.metric, value: o.value })),
     timelineEvents: events.map((e) => ({ sourceType: e.sourceType, metadata: e.metadata })),
   });
+  const topInsights = serializeInsights(await getInsights(SEED_USER_ID, date)).slice(0, 4);
 
   const glucoseValue = s.glucose ? `${s.glucose.average} mmol/L` : "unknown";
   const glucoseSub = s.glucose
@@ -64,8 +67,24 @@ export default async function TodayPage({
       </div>
 
       <section className="rounded-lg border border-border p-4">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">Top insights</div>
-        <p className="mt-1 text-sm text-muted-foreground">No insights yet — coming in a later phase.</p>
+        <div className="flex items-center justify-between">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Top insights</div>
+          <Link href={`/insights?date=${date}`} className="text-xs underline underline-offset-4">all →</Link>
+        </div>
+        {topInsights.length === 0 ? (
+          <p className="mt-1 text-sm text-muted-foreground">No insights for this day.</p>
+        ) : (
+          <ul className="mt-2 space-y-1.5">
+            {topInsights.map((i) => (
+              <li key={i.id} className="flex items-start gap-2 text-sm">
+                <span className="mt-0.5 shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">{i.severity}</span>
+                <span>
+                  <span className="font-medium">{i.title}</span> <span className="text-muted-foreground">— {i.summary}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <Link href={`/timeline?date=${date}`} className="inline-block text-sm underline underline-offset-4">
