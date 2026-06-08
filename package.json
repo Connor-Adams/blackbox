@@ -17,7 +17,8 @@
     "db:reset": "tsx scripts/reset.ts",
     "db:sync": "tsx scripts/sync.ts",
     "garmin:spike": "tsx scripts/garmin-spike.ts",
-    "garmin:login": "tsx scripts/garmin-login.ts"
+    "garmin:login": "tsx scripts/garmin-login.ts",
+    "garmin:probe": "tsx scripts/garmin-probe-run.ts"
   },
   "engines": {
     "node": ">=20"
