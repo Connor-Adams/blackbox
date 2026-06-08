@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { TimelineDTO, TimelineEventDTO } from "@/lib/api/timeline-dto";
 import { GlucoseStrip } from "./GlucoseStrip";
+import { MetricStrips } from "./MetricStrips";
 import { EventList } from "./EventList";
 import { AnnotationForm } from "./AnnotationForm";
 
@@ -41,6 +42,8 @@ export function TimelineView({ timeline }: { timeline: TimelineDTO }) {
       </header>
 
       <GlucoseStrip glucose={timeline.glucose} />
+
+      <MetricStrips series={timeline.series} />
 
       {sources.length > 0 && (
         <div className="flex flex-wrap gap-2 text-xs">

@@ -60,8 +60,10 @@ export function mapStress(json: { stressValuesArray?: ValueArray }): GarminObser
     .map(([ts, v]) => obs("stress", "score", ts, v as number));
 }
 
-/** bodyBattery/reports/daily: array of reports, each with a values array
- *  whose level is the last element ([ms, status, level] or [ms, level]). */
+/** Body-battery values array, from either dailyStress or bodyBattery/reports.
+ *  Rows are `[timestamp, status, level, version?]` — the LEVEL is index 2 (index
+ *  3 is a constant version). A 2-element row `[timestamp, level]` puts the level
+ *  last. (Reading the last element naively picks up the version, not the level.) */
 export function mapBodyBattery(
   reports: { bodyBatteryValuesArray?: (number | string | null)[][] }[],
 ): GarminObservationPayload[] {
@@ -69,8 +71,8 @@ export function mapBodyBattery(
   for (const report of reports ?? []) {
     for (const row of report.bodyBatteryValuesArray ?? []) {
       if (row.length < 2) continue;
-      const ts = row[0] as number;
-      const level = row[row.length - 1];
+      const ts = row[0];
+      const level = row.length >= 3 ? row[2] : row[1];
       if (typeof ts === "number" && typeof level === "number") out.push(obs("body_battery", "score", ts, level));
     }
   }

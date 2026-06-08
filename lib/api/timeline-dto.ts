@@ -19,11 +19,22 @@ export interface GlucosePointDTO {
   value: number;
   unit: string;
 }
+export interface MetricSeriesDTO {
+  metric: string;
+  unit: string;
+  points: { observedAt: string; value: number }[];
+}
 export interface TimelineDTO {
   date: string;
   events: TimelineEventDTO[];
   glucose: GlucosePointDTO[];
+  /** Non-glucose health observation series for the day, grouped by metric and
+   *  sorted (dense intraday metrics first). Finance metrics live on /money. */
+  series: MetricSeriesDTO[];
 }
+
+// Observation metrics that belong on the finance page, not the health timeline.
+const FINANCE_METRICS = new Set(["cash_balance", "daily_spend", "transaction_amount"]);
 
 /** Pure mapping of DB rows → the timeline payload the UI consumes. */
 export function serializeTimeline(
@@ -44,5 +55,22 @@ export function serializeTimeline(
     .filter((o) => o.metric === "glucose")
     .map((o) => ({ observedAt: o.observedAt.toISOString(), value: o.value, unit: o.unit }))
     .sort((a, b) => a.observedAt.localeCompare(b.observedAt));
-  return { date, events, glucose };
+
+  // Group the remaining (non-glucose, non-finance) observations into per-metric series.
+  const seriesByMetric = new Map<string, MetricSeriesDTO>();
+  for (const o of data.observations) {
+    if (o.metric === "glucose" || FINANCE_METRICS.has(o.metric)) continue;
+    let s = seriesByMetric.get(o.metric);
+    if (!s) {
+      s = { metric: o.metric, unit: o.unit, points: [] };
+      seriesByMetric.set(o.metric, s);
+    }
+    s.points.push({ observedAt: o.observedAt.toISOString(), value: o.value });
+  }
+  const series = [...seriesByMetric.values()]
+    .map((s) => ({ ...s, points: s.points.sort((a, b) => a.observedAt.localeCompare(b.observedAt)) }))
+    // densest (intraday) series first, then alphabetical.
+    .sort((a, b) => b.points.length - a.points.length || a.metric.localeCompare(b.metric));
+
+  return { date, events, glucose, series };
 }
