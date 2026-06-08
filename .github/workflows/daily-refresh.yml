@@ -1,0 +1,33 @@
+name: Daily refresh
+
+# Pull the latest Garmin data and recompute snapshots + insights once a day.
+# The app's job routes compute synchronously (no Inngest worker runs in prod),
+# so this is what actually keeps /today and /insights fresh. The Garmin sync
+# uses the stored, auto-refreshing session — no credentials needed here.
+
+on:
+  schedule:
+    - cron: "0 12 * * *" # 12:00 UTC daily (~08:00 ET) — after the prior night's sleep finalizes
+  workflow_dispatch: {} # allow manual runs
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Garmin, then recompute snapshot + insights (yesterday + today)
+        env:
+          APP_URL: https://blackbox-production-d439.up.railway.app
+          GARMIN_CONNECTION_ID: "00000000-0000-4000-8000-000000000021"
+        run: |
+          set -uo pipefail
+
+          echo "→ Garmin sync"
+          curl -fsS -m 300 -X POST "$APP_URL/api/sources/$GARMIN_CONNECTION_ID/sync" || echo "  (garmin sync failed — continuing)"
+
+          for d in "$(date -u +%F)" "$(date -u -d 'yesterday' +%F)"; do
+            echo "→ recompute $d"
+            curl -fsS -m 120 -X POST "$APP_URL/api/jobs/daily-snapshot?date=$d" || echo "  (snapshot $d failed)"
+            curl -fsS -m 120 -X POST "$APP_URL/api/jobs/insights?date=$d"       || echo "  (insights $d failed)"
+          done
+
+          echo "Done."
