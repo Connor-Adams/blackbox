@@ -68,6 +68,7 @@ export function mapBodyBattery(
   const out: GarminObservationPayload[] = [];
   for (const report of reports ?? []) {
     for (const row of report.bodyBatteryValuesArray ?? []) {
+      if (row.length < 2) continue;
       const ts = row[0] as number;
       const level = row[row.length - 1];
       if (typeof ts === "number" && typeof level === "number") out.push(obs("body_battery", "score", ts, level));

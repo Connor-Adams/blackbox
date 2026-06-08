@@ -22,9 +22,14 @@ export const garminConnector: Connector = {
       return garminMockDay;
     }
 
-    const http = httpFromCreds(creds);
-    const displayName = await getDisplayName(http);
     const dates = syncDates(ctx.connection.lastSyncAt, ctx.now);
+    if (dates.length === 0) return []; // lastSyncAt ahead of now (clock skew) — nothing to do
+
+    const http = httpFromCreds(creds);
+    // Persist rotated OAuth2 tokens so the next sync starts from a fresh bundle.
+    http.onSessionUpdate((session) => ctx.saveCredentials(session));
+
+    const displayName = await getDisplayName(http);
 
     const payloads: unknown[] = [];
     for (let i = 0; i < dates.length; i++) {

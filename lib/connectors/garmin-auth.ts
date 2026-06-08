@@ -16,14 +16,23 @@
 // Deep imports — the package ships no "exports" map, so internal modules resolve.
 import { HttpClient } from "garmin-connect-client/dist/http-client.js";
 import { GarminUrls } from "garmin-connect-client/dist/urls.js";
+import type { PersistedSession } from "garmin-connect-client/dist/types.js";
 import type { GarminCreds } from "./types";
 
-/** Minimal authed GET surface — lets the fetch layer be tested without network. */
+/** Minimal authed surface — lets the fetch layer be tested without network.
+ *  `onSessionUpdate` fires when the OAuth2 token is rotated so the caller can
+ *  re-persist the refreshed bundle. */
 export interface GarminHttp {
   get<T>(url: string): Promise<T>;
+  onSessionUpdate(callback: (session: GarminCreds) => void | Promise<void>): void;
 }
 
 /** Build an auto-refreshing authed HTTP client from a stored session bundle. */
 export function httpFromCreds(creds: GarminCreds): GarminHttp {
-  return new HttpClient(new GarminUrls(), creds as never) as unknown as GarminHttp;
+  const client = new HttpClient(new GarminUrls(), creds as unknown as PersistedSession);
+  return {
+    get: (url) => client.get(url),
+    onSessionUpdate: (callback) =>
+      client.setSessionUpdateCallback((session) => callback(session as unknown as GarminCreds)),
+  };
 }
