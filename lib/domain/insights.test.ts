@@ -47,3 +47,38 @@ describe("computeInsights", () => {
     expect(types({ observations, timelineEvents: [] })).toContain("high_spend");
   });
 });
+
+const o = (id: string, metric: string, value: number, iso = "2026-06-07T08:00:00Z") => ({ id, metric, value, observedAt: new Date(iso) });
+
+describe("computeInsights — garmin recovery rules", () => {
+  it("flags low recovery (training readiness < 25)", () => {
+    expect(types({ observations: [o("r", "training_readiness", 9)], timelineEvents: [] })).toContain("low_recovery");
+  });
+  it("flags poor sleep (sleep_score < 50)", () => {
+    expect(types({ observations: [o("s", "sleep_score", 42)], timelineEvents: [] })).toContain("poor_sleep");
+  });
+  it("flags body battery that never recharged (peak < 50)", () => {
+    const obs = [o("b1", "body_battery", 5, "2026-06-07T01:00:00Z"), o("b2", "body_battery", 30, "2026-06-07T09:00:00Z")];
+    expect(types({ observations: obs, timelineEvents: [] })).toContain("body_battery_low");
+  });
+  it("flags a high-stress day (avg > 50)", () => {
+    const obs = Array.from({ length: 12 }, (_, i) => o(`st${i}`, "stress", 70, `2026-06-07T${String(i).padStart(2, "0")}:00:00Z`));
+    expect(types({ observations: obs, timelineEvents: [] })).toContain("high_stress");
+  });
+  it("flags resting HR elevated vs the trailing baseline", () => {
+    const t = types({ observations: [o("rhr", "resting_heart_rate", 65)], timelineEvents: [], baseline: { resting_heart_rate: { mean: 55, stddev: 2, n: 14 } } });
+    expect(t).toContain("resting_hr_elevated");
+  });
+  it("does NOT flag resting HR within the baseline", () => {
+    const t = types({ observations: [o("rhr", "resting_heart_rate", 56)], timelineEvents: [], baseline: { resting_heart_rate: { mean: 55, stddev: 2, n: 14 } } });
+    expect(t).not.toContain("resting_hr_elevated");
+  });
+  it("flags recovery_compromised when poor sleep AND low readiness coincide", () => {
+    const t = types({ observations: [o("s", "sleep_score", 48), o("r", "training_readiness", 20)], timelineEvents: [] });
+    expect(t).toEqual(expect.arrayContaining(["recovery_compromised", "poor_sleep", "low_recovery"]));
+  });
+  it("returns nothing for a healthy garmin day", () => {
+    const obs = [o("s", "sleep_score", 85), o("r", "training_readiness", 75), o("rhr", "resting_heart_rate", 54)];
+    expect(computeInsights({ observations: obs, timelineEvents: [], baseline: { resting_heart_rate: { mean: 55, stddev: 2, n: 14 } } })).toEqual([]);
+  });
+});
