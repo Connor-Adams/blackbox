@@ -97,9 +97,9 @@ describe("computeTrend", () => {
       metric: "glucose",
       todayValue: 6.5,
       today: "2026-06-15",
-      history: days(10, 6.5),
+      history: days(14, 6.5),
     });
     expect(result.sampleCount7d).toBe(7);
-    expect(result.sampleCount30d).toBe(10);
+    expect(result.sampleCount30d).toBe(14);
   });
 });

@@ -93,7 +93,7 @@ export function computeTrend(input: TrendInput): ComputedTrend {
     delta30dPct,
     direction,
     streak,
-    sampleCount7d: Math.min(last30d.length, 7),
+    sampleCount7d: last7d.length,
     sampleCount30d: last30d.length,
   };
 }
