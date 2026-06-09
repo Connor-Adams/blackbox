@@ -15,6 +15,10 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid date (expected YYYY-MM-DD)" }, { status: 400 });
   }
-  const count = await computeAndStoreCorrelations(SEED_USER_ID, date);
-  return NextResponse.json({ ok: true, date, count });
+  try {
+    const count = await computeAndStoreCorrelations(SEED_USER_ID, date);
+    return NextResponse.json({ ok: true, date, count });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }

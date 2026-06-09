@@ -49,8 +49,9 @@ export function computeTrend(input: TrendInput): ComputedTrend {
   const sorted = [...history].sort((a, b) => a.date.localeCompare(b.date));
 
   const cutoff7d = daysAgo(today, 7);
+  const cutoff30d = daysAgo(today, 30);
   const last7d = sorted.filter((d) => d.date >= cutoff7d && d.date < today);
-  const last30d = sorted.filter((d) => d.date < today);
+  const last30d = sorted.filter((d) => d.date >= cutoff30d && d.date < today);
 
   const baseline7d = last7d.length >= MIN_SAMPLES_7D ? round(avg(last7d.map((d) => d.value))) : null;
   const baseline30d = last30d.length >= MIN_SAMPLES_30D ? round(avg(last30d.map((d) => d.value))) : null;

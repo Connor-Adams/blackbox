@@ -102,4 +102,20 @@ describe("computeTrend", () => {
     expect(result.sampleCount7d).toBe(7);
     expect(result.sampleCount30d).toBe(14);
   });
+
+  it("caps 30d baseline to last 30 days only", () => {
+    const old = Array.from({ length: 20 }, (_, i) => ({
+      date: `2026-04-${String(i + 1).padStart(2, "0")}`,
+      value: 20.0,
+    }));
+    const recent = days(14, 6.5);
+    const result = computeTrend({
+      metric: "glucose",
+      todayValue: 6.5,
+      today: "2026-06-15",
+      history: [...old, ...recent],
+    });
+    expect(result.baseline30d).toBe(6.5);
+    expect(result.sampleCount30d).toBe(14);
+  });
 });
