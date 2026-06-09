@@ -53,6 +53,9 @@ export type InsightSeverity = (typeof insightSeverities)[number];
 export const insightStatuses = ["active", "dismissed", "archived"] as const;
 export type InsightStatus = (typeof insightStatuses)[number];
 
+export const trendDirections = ["rising", "falling", "stable"] as const;
+export type TrendDirection = (typeof trendDirections)[number];
+
 type Json = Record<string, unknown>;
 
 // ---- Tables ----
@@ -174,6 +177,59 @@ export const dailySnapshot = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("daily_snapshot_user_date_uq").on(t.userId, t.date)],
+);
+
+export const dailyTrend = pgTable(
+  "daily_trend",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull(),
+    date: date("date").notNull(),
+    metric: text("metric").$type<ObservationMetric>().notNull(),
+    value: doublePrecision("value").notNull(),
+    baseline7d: doublePrecision("baseline_7d"),
+    baseline30d: doublePrecision("baseline_30d"),
+    delta7dPct: doublePrecision("delta_7d_pct"),
+    delta30dPct: doublePrecision("delta_30d_pct"),
+    direction: text("direction").$type<TrendDirection>().notNull().default("stable"),
+    streak: integer("streak").notNull().default(0),
+    sampleCount7d: integer("sample_count_7d").notNull().default(0),
+    sampleCount30d: integer("sample_count_30d").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("daily_trend_user_date_metric_uq").on(t.userId, t.date, t.metric),
+  ],
+);
+
+export const correlation = pgTable(
+  "correlation",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").notNull(),
+    date: date("date").notNull(),
+    primaryMetric: text("primary_metric").notNull(),
+    coFactorMetric: text("co_factor_metric").notNull(),
+    windowDays: integer("window_days").notNull().default(30),
+    sampleCount: integer("sample_count").notNull().default(0),
+    splitThreshold: doublePrecision("split_threshold").notNull(),
+    splitLabel: text("split_label").notNull(),
+    primaryWhenBelow: doublePrecision("primary_when_below"),
+    primaryWhenAbove: doublePrecision("primary_when_above"),
+    countBelow: integer("count_below").notNull().default(0),
+    countAbove: integer("count_above").notNull().default(0),
+    deltaAbs: doublePrecision("delta_abs"),
+    deltaPct: doublePrecision("delta_pct"),
+    significant: integer("significant").notNull().default(0),
+    narrative: text("narrative").notNull().default(""),
+    evidenceJson: jsonb("evidence_json").$type<Json>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("correlation_user_date_metrics_uq").on(t.userId, t.date, t.primaryMetric, t.coFactorMetric),
+  ],
 );
 
 export const insight = pgTable(
