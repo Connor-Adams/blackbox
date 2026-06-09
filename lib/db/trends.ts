@@ -1,7 +1,7 @@
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { observation, dailyTrend, type ObservationMetric } from "@/lib/db/schema";
-import { computeTrend, type DailyMetricValue, type ComputedTrend } from "@/lib/domain/trends";
+import { computeTrend, type DailyMetricValue } from "@/lib/domain/trends";
 
 type Db = ReturnType<typeof getDb>;
 
