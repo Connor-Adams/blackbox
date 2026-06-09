@@ -82,3 +82,66 @@ describe("computeInsights — garmin recovery rules", () => {
     expect(computeInsights({ observations: obs, timelineEvents: [], baseline: { resting_heart_rate: { mean: 55, stddev: 2, n: 14 } } })).toEqual([]);
   });
 });
+
+import type { ComputedTrend } from "@/lib/domain/trends";
+import type { ComputedCorrelation } from "@/lib/domain/correlations";
+
+const trend = (metric: string, direction: "rising" | "falling" | "stable", streak: number, delta7dPct: number): ComputedTrend => ({
+  metric, value: 7, baseline7d: 6.5, baseline30d: 6.5, delta7dPct, delta30dPct: delta7dPct, direction, streak, sampleCount7d: 7, sampleCount30d: 14,
+});
+
+const corr = (coFactor: string, significant: boolean, deltaPct: number): ComputedCorrelation => ({
+  primaryMetric: "glucose", coFactorMetric: coFactor, windowDays: 30, sampleCount: 20, splitThreshold: 6,
+  splitLabel: "6h", primaryWhenBelow: 7.8, primaryWhenAbove: 6.2, countBelow: 10, countAbove: 10,
+  deltaAbs: 1.6, deltaPct, significant, narrative: "test narrative", evidence: {},
+});
+
+describe("computeInsights — trend + correlation rules", () => {
+  it("flags glucose_sleep_correlation when sleep correlation is significant", () => {
+    const result = computeInsights({
+      observations: [], timelineEvents: [],
+      correlations: [corr("sleep_duration", true, 26)],
+    });
+    expect(result.find((i) => i.insightType === "glucose_sleep_correlation")).toBeDefined();
+  });
+
+  it("does NOT flag glucose_sleep_correlation when not significant", () => {
+    const result = computeInsights({
+      observations: [], timelineEvents: [],
+      correlations: [corr("sleep_duration", false, 5)],
+    });
+    expect(result.find((i) => i.insightType === "glucose_sleep_correlation")).toBeUndefined();
+  });
+
+  it("flags glucose_activity_correlation for significant steps correlation", () => {
+    const result = computeInsights({
+      observations: [], timelineEvents: [],
+      correlations: [corr("steps", true, 12)],
+    });
+    expect(result.find((i) => i.insightType === "glucose_activity_correlation")).toBeDefined();
+  });
+
+  it("flags glucose_recovery_correlation for significant HRV correlation", () => {
+    const result = computeInsights({
+      observations: [], timelineEvents: [],
+      correlations: [corr("hrv", true, 15)],
+    });
+    expect(result.find((i) => i.insightType === "glucose_recovery_correlation")).toBeDefined();
+  });
+
+  it("flags trending_metric for a 5+ day streak", () => {
+    const result = computeInsights({
+      observations: [], timelineEvents: [],
+      trends: [trend("glucose", "rising", 5, 10)],
+    });
+    expect(result.find((i) => i.insightType === "trending_metric")).toBeDefined();
+  });
+
+  it("does NOT flag trending_metric for streak < 5", () => {
+    const result = computeInsights({
+      observations: [], timelineEvents: [],
+      trends: [trend("glucose", "rising", 3, 10)],
+    });
+    expect(result.find((i) => i.insightType === "trending_metric")).toBeUndefined();
+  });
+});

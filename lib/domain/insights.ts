@@ -1,4 +1,6 @@
 import type { InsightSeverity } from "@/lib/db/schema";
+import type { ComputedTrend } from "@/lib/domain/trends";
+import type { ComputedCorrelation } from "@/lib/domain/correlations";
 
 export interface ComputedInsight {
   insightType: string;
@@ -18,6 +20,8 @@ export interface InsightInput {
   observations: InsightObservation[];
   timelineEvents: InsightEvent[];
   baseline?: Record<string, MetricBaseline>;
+  trends?: ComputedTrend[];
+  correlations?: ComputedCorrelation[];
 }
 
 const VOLATILITY = 3.0;
@@ -272,6 +276,69 @@ export function computeInsights(input: InsightInput): ComputedInsight[] {
       sourceTimelineEventIds: [],
       evidence: { sleepScore: sleepScore.value, readiness: readinessVal },
     });
+  }
+
+  // --- Correlation-derived insight rules ---
+  const SLEEP_METRICS = ["sleep_duration", "sleep_score"];
+  const ACTIVITY_METRICS = ["steps", "intensity_minutes"];
+  const RECOVERY_METRICS = ["hrv", "resting_heart_rate", "body_battery", "training_readiness"];
+
+  if (input.correlations) {
+    const sigSleep = input.correlations.find((c) => SLEEP_METRICS.includes(c.coFactorMetric) && c.significant);
+    if (sigSleep) {
+      out.push({
+        insightType: "glucose_sleep_correlation",
+        severity: "notice",
+        title: "Sleep driving glucose pattern",
+        summary: sigSleep.narrative,
+        sourceObservationIds: [],
+        sourceTimelineEventIds: [],
+        evidence: { coFactor: sigSleep.coFactorMetric, deltaPct: sigSleep.deltaPct, sampleCount: sigSleep.sampleCount },
+      });
+    }
+
+    const sigActivity = input.correlations.find((c) => ACTIVITY_METRICS.includes(c.coFactorMetric) && c.significant);
+    if (sigActivity) {
+      out.push({
+        insightType: "glucose_activity_correlation",
+        severity: "notice",
+        title: "Activity helps glucose",
+        summary: sigActivity.narrative,
+        sourceObservationIds: [],
+        sourceTimelineEventIds: [],
+        evidence: { coFactor: sigActivity.coFactorMetric, deltaPct: sigActivity.deltaPct, sampleCount: sigActivity.sampleCount },
+      });
+    }
+
+    const sigRecovery = input.correlations.find((c) => RECOVERY_METRICS.includes(c.coFactorMetric) && c.significant);
+    if (sigRecovery) {
+      out.push({
+        insightType: "glucose_recovery_correlation",
+        severity: "notice",
+        title: "Recovery linked to glucose",
+        summary: sigRecovery.narrative,
+        sourceObservationIds: [],
+        sourceTimelineEventIds: [],
+        evidence: { coFactor: sigRecovery.coFactorMetric, deltaPct: sigRecovery.deltaPct, sampleCount: sigRecovery.sampleCount },
+      });
+    }
+  }
+
+  // --- Trending metric rule ---
+  if (input.trends) {
+    const longStreak = input.trends.find((t) => t.streak >= 5 && t.direction !== "stable");
+    if (longStreak) {
+      const dir = longStreak.direction === "rising" ? "up" : "down";
+      out.push({
+        insightType: "trending_metric",
+        severity: "info",
+        title: `${longStreak.metric.replace(/_/g, " ")} trending ${dir}`,
+        summary: `${longStreak.metric.replace(/_/g, " ")} has been ${longStreak.direction} for ${longStreak.streak} consecutive days (${longStreak.delta7dPct !== null ? `${longStreak.delta7dPct}%` : ""} vs 7d baseline).`,
+        sourceObservationIds: [],
+        sourceTimelineEventIds: [],
+        evidence: { metric: longStreak.metric, direction: longStreak.direction, streak: longStreak.streak, delta7dPct: longStreak.delta7dPct },
+      });
+    }
   }
 
   return out;

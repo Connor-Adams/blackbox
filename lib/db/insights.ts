@@ -5,6 +5,10 @@ import { getTimeline } from "@/lib/db/store";
 import { dayRange } from "@/lib/domain/time";
 import { computeInsights, type MetricBaseline } from "@/lib/domain/insights";
 import type { InsightSeverity, ObservationMetric } from "@/lib/db/schema";
+import { getTrends } from "@/lib/db/trends";
+import { getCorrelations } from "@/lib/db/correlations";
+import type { ComputedTrend } from "@/lib/domain/trends";
+import type { ComputedCorrelation } from "@/lib/domain/correlations";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -67,10 +71,46 @@ export async function computeAndStoreInsights(userId: string, date: string, db: 
   const { start, end } = dayRange(date);
   const { events, observations } = await getTimeline(userId, date, db);
   const baseline = await getBaseline(userId, date, db);
+
+  const trendRows = await getTrends(userId, date, db);
+  const trends: ComputedTrend[] = trendRows.map((t) => ({
+    metric: t.metric,
+    value: t.value,
+    baseline7d: t.baseline7d,
+    baseline30d: t.baseline30d,
+    delta7dPct: t.delta7dPct,
+    delta30dPct: t.delta30dPct,
+    direction: t.direction as "rising" | "falling" | "stable",
+    streak: t.streak,
+    sampleCount7d: t.sampleCount7d,
+    sampleCount30d: t.sampleCount30d,
+  }));
+
+  const corrRows = await getCorrelations(userId, date, db);
+  const correlations: ComputedCorrelation[] = corrRows.map((c) => ({
+    primaryMetric: c.primaryMetric,
+    coFactorMetric: c.coFactorMetric,
+    windowDays: c.windowDays,
+    sampleCount: c.sampleCount,
+    splitThreshold: c.splitThreshold,
+    splitLabel: c.splitLabel,
+    primaryWhenBelow: c.primaryWhenBelow,
+    primaryWhenAbove: c.primaryWhenAbove,
+    countBelow: c.countBelow,
+    countAbove: c.countAbove,
+    deltaAbs: c.deltaAbs,
+    deltaPct: c.deltaPct,
+    significant: c.significant === 1,
+    narrative: c.narrative,
+    evidence: c.evidenceJson as Record<string, unknown>,
+  }));
+
   const computed = computeInsights({
     observations: observations.map((o) => ({ id: o.id, metric: o.metric, value: o.value, observedAt: o.observedAt })),
     timelineEvents: events.map((e) => ({ id: e.id, sourceType: e.sourceType, eventType: e.eventType, startedAt: e.startedAt, metadata: e.metadata })),
     baseline,
+    trends,
+    correlations,
   });
 
   for (const c of computed) {
