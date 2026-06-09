@@ -14,7 +14,7 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync Garmin, then recompute snapshot + insights (yesterday + today)
+      - name: Sync Garmin, then recompute snapshot + trends + correlations + insights (yesterday + today)
         env:
           APP_URL: https://blackbox-production-d439.up.railway.app
           GARMIN_CONNECTION_ID: "00000000-0000-4000-8000-000000000021"
@@ -26,8 +26,10 @@ jobs:
 
           for d in "$(date -u +%F)" "$(date -u -d 'yesterday' +%F)"; do
             echo "→ recompute $d"
-            curl -fsS -m 120 -X POST "$APP_URL/api/jobs/daily-snapshot?date=$d" || echo "  (snapshot $d failed)"
-            curl -fsS -m 120 -X POST "$APP_URL/api/jobs/insights?date=$d"       || echo "  (insights $d failed)"
+            curl -fsS -m 120 -X POST "$APP_URL/api/jobs/daily-snapshot?date=$d"  || echo "  (snapshot $d failed)"
+            curl -fsS -m 120 -X POST "$APP_URL/api/jobs/trends?date=$d"          || echo "  (trends $d failed)"
+            curl -fsS -m 120 -X POST "$APP_URL/api/jobs/correlations?date=$d"    || echo "  (correlations $d failed)"
+            curl -fsS -m 120 -X POST "$APP_URL/api/jobs/insights?date=$d"        || echo "  (insights $d failed)"
           done
 
           echo "Done."
